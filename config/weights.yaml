@@ -1,0 +1,30 @@
+# Evidence fusion parameters. All numbers are tunable; see model/scorer.py for how they combine.
+# score(track, tag) = sum over evidence of  source.weight * specificity_factor * match_cap * (remix_factor if applicable)
+
+sources:
+  beatport:         { weight: 1.0 }
+  sonovault:        { weight: 0.8 }
+  discogs:          { weight: 0.7, remix_factor: 0.6 }   # release-level styles; weaker for remixes by another artist
+  audio_discogs400: { weight: 0.5 }                       # Milestone 4 audio prior
+  label_prior:      { weight: 0.4 }                       # Milestone 5
+  musicbrainz:      { weight: 0.4 }
+  lastfm:           { weight: 0.4 }
+  spotify_artist:   { weight: 0.3 }                       # artist-level, sparse, broad
+  deezer:           { weight: 0.2 }                       # album-level, coarse
+  itunes:           { weight: 0.1 }
+
+specificity_factor:
+  subgenre: 1.0
+  genre: 1.0
+  family: 0.1        # broad tags barely count and only at family level
+
+match_method_cap:    # multiplies the evidence weight by how the track was matched at the source
+  isrc: 1.0
+  id: 1.0
+  fuzzy: 0.8
+  fuzzy_ambiguous: 0.3
+
+assignment:
+  threshold: 0.45        # probability needed to place a track in a playlist
+  review_margin: 0.15    # top-1 minus top-2 below this => flagged "between", placed in both
+  min_evidence_weight: 0.3  # below this total weight the track is "unknown" and goes to review

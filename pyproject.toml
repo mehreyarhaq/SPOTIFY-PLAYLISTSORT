@@ -1,0 +1,70 @@
+[project]
+name = "playlistsort"
+version = "0.1.0"
+description = "Sort a Spotify Liked Songs library into DJ-grade genre and feel playlists"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = { text = "MIT" }
+dependencies = [
+    "spotipy>=2.26.0",
+    "httpx>=0.27",
+    "tenacity>=8.2",
+    "typer>=0.12",
+    "rich>=13.7",
+    "pydantic-settings>=2.3",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+    "rapidfuzz>=3.6",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+# Milestone 4+: audio analysis. PyTorch path is primary (works on Apple Silicon).
+audio = [
+    "torch>=2.2",
+    "transformers>=4.40",
+    "librosa>=0.10",
+    "soundfile>=0.12",
+    "mutagen>=1.47",
+    "pyrekordbox>=0.4",
+]
+# Optional, Linux x86_64 only: Essentia feel heads and EDM key profiles.
+essentia = [
+    "essentia-tensorflow==2.1b6.dev1389; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+# Milestone 5+: review UI and personalised classifier.
+ui = [
+    "streamlit>=1.35",
+    "scikit-learn>=1.4",
+    "pandas>=2.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "vcrpy>=6.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+playlistsort = "playlistsort.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/playlistsort"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "N", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

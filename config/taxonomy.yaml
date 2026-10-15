@@ -1,0 +1,367 @@
+# Canonical genre taxonomy = Beatport's genre / sub-genre tree (names as on beatport.com, Oct 2026).
+# Every other source is mapped into this tree through `aliases`. Keys are stable identifiers used in
+# the database; display names may change when Beatport renames things.
+#
+# Tag identity: "<genre_key>" or "<genre_key>.<subgenre_key>".
+# Specificity: subgenre > genre > family. Only `family` tags are "broad" and vote parent-only.
+version: "2026-10-15"
+sources:
+  beatport_live_nav: "2026-10-14 (genre ids from beatport.com navigation)"
+  beatport_delivery_dictionary: "2025-05 (sub-genre names; see docs/research/reference)"
+  beatport_v4_old_dump: "sub-genre ids where known (may be stale)"
+
+genres:
+  - key: afro_house
+    name: "Afro House"
+    beatport_id: 89
+    family: house
+    subgenres:
+      - { key: afro_latin,   name: "Afro / Latin",  beatport_id: 240 }
+      - { key: afro_melodic, name: "Afro Melodic" }
+      - { key: three_step,   name: "3Step" }
+  - key: tech_house
+    name: "Tech House"
+    beatport_id: 11
+    family: house
+    subgenres:
+      - { key: latin_tech, name: "Latin Tech" }
+  - key: minimal_deep_tech
+    name: "Minimal / Deep Tech"
+    beatport_id: 14
+    family: house
+    subgenres:
+      - { key: deep_tech,     name: "Deep Tech",     beatport_id: 188 }
+      - { key: minimal_house, name: "Minimal House" }
+      - { key: bounce,        name: "Bounce",        beatport_id: 167 }
+  - key: melodic_house_techno
+    name: "Melodic House & Techno"
+    beatport_id: 90
+    family: house
+    subgenres:
+      - { key: melodic_house,  name: "Melodic House" }
+      - { key: melodic_techno, name: "Melodic Techno" }
+  - key: progressive_house
+    name: "Progressive House"
+    beatport_id: 15
+    family: house
+  - key: organic_house
+    name: "Organic House"
+    beatport_id: 93
+    family: house
+  - key: deep_house
+    name: "Deep House"
+    beatport_id: 12
+    family: house
+  - key: house
+    name: "House"
+    beatport_id: 5
+    family: house
+    subgenres:
+      - { key: acid,    name: "Acid",    beatport_id: 143 }
+      - { key: soulful, name: "Soulful", beatport_id: 177 }
+  - key: jackin_house
+    name: "Jackin House"
+    beatport_id: 97
+    family: house
+  - key: funky_house
+    name: "Funky House"
+    beatport_id: 81
+    family: house
+  - key: indie_dance
+    name: "Indie Dance"
+    beatport_id: 37
+    family: house
+    subgenres:
+      - { key: dark_disco, name: "Dark Disco", beatport_id: 223 }
+  - key: indie_tech
+    name: "Indie Tech"
+    beatport_id: 112
+    family: house
+  - key: bass_house
+    name: "Bass House"
+    beatport_id: 91
+    family: house
+  - key: nu_disco_disco
+    name: "Nu Disco / Disco"
+    beatport_id: 50
+    family: house
+    subgenres:
+      - { key: funk_soul, name: "Funk / Soul", beatport_id: 210 }
+      - { key: italo,     name: "Italo",       beatport_id: 243 }
+  - key: techno_peak
+    name: "Techno (Peak Time / Driving)"
+    beatport_id: 6
+    family: techno
+    subgenres:
+      - { key: peak_time,  name: "Peak Time",  beatport_id: 218 }
+      - { key: driving,    name: "Driving",    beatport_id: 219 }
+      - { key: psy_techno, name: "Psy-Techno" }
+  - key: techno_raw
+    name: "Techno (Raw / Deep / Hypnotic)"
+    beatport_id: 92
+    family: techno
+    subgenres:
+      - { key: raw,           name: "Raw",             beatport_id: 225 }
+      - { key: deep_hypnotic, name: "Deep / Hypnotic", beatport_id: 224 }
+      - { key: dub,           name: "Dub",             beatport_id: 228 }
+      - { key: broken,        name: "Broken",          beatport_id: 229 }
+      - { key: ebm,           name: "EBM",             beatport_id: 227 }
+  - key: hard_techno
+    name: "Hard Techno"
+    beatport_id: 2
+    family: techno
+  - key: electro
+    name: "Electro (Classic / Detroit / Modern)"
+    beatport_id: 94
+    family: electronic
+  - key: downtempo
+    name: "Downtempo"
+    beatport_id: 63
+    family: electronic
+  - key: electronica
+    name: "Electronica"
+    beatport_id: 3
+    family: electronic
+  - key: ambient_experimental
+    name: "Ambient / Experimental"
+    beatport_id: 100
+    family: electronic
+  - key: amapiano
+    name: "Amapiano"
+    beatport_id: 98
+    family: house
+    subgenres:
+      - { key: gqom, name: "Gqom", beatport_id: 253 }
+  - key: uk_garage_bassline
+    name: "UK Garage / Bassline"
+    beatport_id: 86
+    family: bass
+    subgenres:
+      - { key: uk_garage, name: "UK Garage", beatport_id: 198 }
+      - { key: bassline,  name: "Bassline",  beatport_id: 199 }
+  - key: breaks
+    name: "Breaks / Breakbeat / UK Bass"
+    beatport_id: 9
+    family: bass
+  - key: trance_main
+    name: "Trance (Main Floor)"
+    beatport_id: 7
+    family: trance
+    subgenres:
+      - { key: progressive_trance, name: "Progressive Trance" }
+      - { key: tech_trance,        name: "Tech Trance" }
+      - { key: uplifting_trance,   name: "Uplifting Trance" }
+      - { key: vocal_trance,       name: "Vocal Trance" }
+      - { key: hard_trance,        name: "Hard Trance" }
+  - key: trance_raw
+    name: "Trance (Raw / Deep / Hypnotic)"
+    beatport_id: 99
+    family: trance
+  - key: psy_trance
+    name: "Psy-Trance"
+    beatport_id: 13
+    family: trance
+  - key: mainstage
+    name: "Mainstage"
+    beatport_id: 96
+    family: commercial
+    subgenres:
+      - { key: big_room,      name: "Big Room",      beatport_id: 245 }
+      - { key: electro_house, name: "Electro House", beatport_id: 246 }
+      - { key: future_house,  name: "Future House",  beatport_id: 247 }
+      - { key: future_rave,   name: "Future Rave",   beatport_id: 252 }
+      - { key: speed_house,   name: "Speed House",   beatport_id: 249 }
+  - key: dance_pop
+    name: "Dance / Pop"
+    beatport_id: 39
+    family: commercial
+    subgenres:
+      - { key: tropical_house, name: "Tropical House", beatport_id: 150 }
+      - { key: afro_pop,       name: "Afro Pop" }
+      - { key: pop,            name: "Pop",            beatport_id: 148 }
+  - key: drum_and_bass
+    name: "Drum & Bass"
+    beatport_id: 1
+    family: bass
+  - key: dubstep
+    name: "Dubstep"
+    beatport_id: 18
+    family: bass
+  - key: deep_dubstep_grime
+    name: "140 / Deep Dubstep / Grime"
+    beatport_id: 95
+    family: bass
+  - key: trap_future_bass
+    name: "Trap / Future Bass"
+    beatport_id: 38
+    family: bass
+  - key: hard_dance
+    name: "Hard Dance / Hardcore / Neo Rave"
+    beatport_id: 8
+    family: hard
+  - key: latin_electronic
+    name: "Latin Electronic"
+    beatport_id: 111
+    family: house
+  - key: brazilian_funk
+    name: "Brazilian Funk"
+    beatport_id: 101
+    family: bass
+  - key: dj_tools
+    name: "DJ Tools / Acapellas"
+    beatport_id: 16
+    family: other
+
+# Families group genres for broad-tag voting. A broad tag ("house" from Discogs, "electronic"
+# from Spotify) can only ever vote for a family, never for a specific genre.
+families:
+  house:      "House family"
+  techno:     "Techno family"
+  electronic: "Electronic (unspecific)"
+  bass:       "Bass / breaks / garage family"
+  trance:     "Trance family"
+  commercial: "Commercial dance / mainstage"
+  hard:       "Hard dance"
+  other:      "Non-music / tools"
+
+# Aliases: raw tag (matched case- and punctuation-insensitively) -> one or more canonical targets.
+# `sources` restricts the rule to those sources; omit for all sources. Multiple targets split the
+# vote equally unless `weights` is given. `family:` targets are broad (parent-only).
+# Target syntax: "genre_key" | "genre_key.subgenre_key" | "family:<family_key>".
+aliases:
+  # --- broad tags: family-level only -------------------------------------------------------
+  - { raw: "electronic",  target: "family:electronic" }
+  - { raw: "electronica", target: "family:electronic", sources: [spotify, deezer, itunes, apple, lastfm, musicbrainz] }
+  - { raw: "dance",       target: "family:electronic" }
+  - { raw: "edm",         target: "family:electronic" }
+  - { raw: "club",        target: "family:electronic" }
+  - { raw: "electro",     target: "family:electronic", sources: [deezer, itunes, apple, spotify] }
+  - { raw: "house",       target: "family:house", sources: [discogs, musicbrainz, lastfm, spotify, deezer, itunes, apple, sonovault] }
+  - { raw: "techno",      target: "family:techno" }
+  - { raw: "detroit techno", target: "family:techno" }
+  - { raw: "trance",      target: "family:trance", sources: [discogs, musicbrainz, lastfm, spotify, deezer, itunes, apple] }
+  # --- afro ---------------------------------------------------------------------------------
+  - { raw: "afro-house",  target: "afro_house" }
+  - { raw: "afrohouse",   target: "afro_house" }
+  - { raw: "afro deep",   target: "afro_house" }
+  - { raw: "afro / latin / brazilian", target: "afro_house.afro_latin" }
+  - { raw: "afro tech",   targets: ["afro_house.afro_melodic", "tech_house.latin_tech"], note: "no Beatport equivalent; BPM/feel decides" }
+  - { raw: "afrotech",    targets: ["afro_house.afro_melodic", "tech_house.latin_tech"] }
+  - { raw: "tribal house", targets: ["afro_house.afro_latin", "tech_house.latin_tech"] }
+  - { raw: "tribal",      targets: ["afro_house.afro_latin", "tech_house.latin_tech"] }
+  - { raw: "latin house", targets: ["afro_house.afro_latin", "tech_house.latin_tech"] }
+  - { raw: "3-step",      target: "afro_house.three_step" }
+  - { raw: "3 step",      target: "afro_house.three_step" }
+  - { raw: "afro melodic house", target: "afro_house.afro_melodic" }
+  # --- tech house / minimal -----------------------------------------------------------------
+  - { raw: "tech-house",  target: "tech_house" }
+  - { raw: "techhouse",   target: "tech_house" }
+  - { raw: "deep tech",   target: "minimal_deep_tech.deep_tech" }
+  - { raw: "deep-tech",   target: "minimal_deep_tech.deep_tech" }
+  - { raw: "minimal",     target: "minimal_deep_tech" }
+  - { raw: "minimal house", target: "minimal_deep_tech.minimal_house" }
+  - { raw: "minimal deep tech", target: "minimal_deep_tech" }
+  - { raw: "microhouse",  target: "minimal_deep_tech" }
+  - { raw: "micro house", target: "minimal_deep_tech" }
+  - { raw: "rominimal",   target: "minimal_deep_tech" }
+  - { raw: "minimal techno", targets: ["techno_raw.deep_hypnotic", "minimal_deep_tech"], note: "ambiguous; BPM decides (<128 leans minimal/deep tech)" }
+  # --- melodic / progressive / organic ------------------------------------------------------
+  - { raw: "melodic techno", target: "melodic_house_techno.melodic_techno" }
+  - { raw: "melodic house", target: "melodic_house_techno.melodic_house" }
+  - { raw: "melodic house and techno", target: "melodic_house_techno" }
+  - { raw: "melodic / progressive house", targets: ["melodic_house_techno", "progressive_house"] }
+  - { raw: "progressive",  target: "progressive_house", sources: [discogs, musicbrainz, lastfm, sonovault] }
+  - { raw: "progressive techno", targets: ["melodic_house_techno.melodic_techno", "progressive_house"] }
+  - { raw: "prog house",   target: "progressive_house" }
+  - { raw: "organic house / downtempo", target: "organic_house", note: "old Beatport name (pre Apr 2025)" }
+  - { raw: "ethnic house", target: "organic_house" }
+  - { raw: "ethno house",  target: "organic_house" }
+  - { raw: "slow house",   target: "organic_house" }
+  # --- deep / house / jackin / funky / disco ------------------------------------------------
+  - { raw: "deep-house",   target: "deep_house" }
+  - { raw: "deephouse",    target: "deep_house" }
+  - { raw: "acid house",   target: "house.acid" }
+  - { raw: "acid",         target: "house.acid" }
+  - { raw: "soulful house", target: "house.soulful" }
+  - { raw: "garage house", target: "house.soulful" }
+  - { raw: "vocal house",  target: "house.soulful" }
+  - { raw: "jackin",       target: "jackin_house" }
+  - { raw: "jackin' house", target: "jackin_house" }
+  - { raw: "jacking house", target: "jackin_house" }
+  - { raw: "chicago house", target: "jackin_house" }
+  - { raw: "disco house",  target: "funky_house" }
+  - { raw: "french house", target: "funky_house" }
+  - { raw: "nu-disco",     target: "nu_disco_disco" }
+  - { raw: "nu disco",     target: "nu_disco_disco" }
+  - { raw: "disco",        target: "nu_disco_disco" }
+  - { raw: "italo-disco",  target: "nu_disco_disco.italo" }
+  - { raw: "italo disco",  target: "nu_disco_disco.italo" }
+  - { raw: "space disco",  target: "nu_disco_disco" }
+  - { raw: "nu disco / indie dance", targets: ["nu_disco_disco", "indie_dance"] }
+  - { raw: "dark disco",   target: "indie_dance.dark_disco" }
+  - { raw: "indie-dance",  target: "indie_dance" }
+  - { raw: "g-house",      target: "bass_house" }
+  - { raw: "g house",      target: "bass_house" }
+  # --- techno ------------------------------------------------------------------------------
+  - { raw: "peak time techno", target: "techno_peak.peak_time" }
+  - { raw: "driving techno", target: "techno_peak.driving" }
+  - { raw: "psy techno",   target: "techno_peak.psy_techno" }
+  - { raw: "psytechno",    target: "techno_peak.psy_techno" }
+  - { raw: "raw techno",   target: "techno_raw.raw" }
+  - { raw: "hypnotic techno", target: "techno_raw.deep_hypnotic" }
+  - { raw: "deep techno",  target: "techno_raw.deep_hypnotic" }
+  - { raw: "dub techno",   target: "techno_raw.dub" }
+  - { raw: "broken techno", target: "techno_raw.broken" }
+  - { raw: "industrial techno", target: "hard_techno" }
+  - { raw: "schranz",      target: "hard_techno" }
+  - { raw: "hard-techno",  target: "hard_techno" }
+  - { raw: "electro house", target: "mainstage.electro_house" }
+  - { raw: "big room",     target: "mainstage.big_room" }
+  - { raw: "future house", target: "mainstage.future_house" }
+  - { raw: "electroclash", target: "electro" }
+  # --- bass / garage / breaks ---------------------------------------------------------------
+  - { raw: "uk garage",    target: "uk_garage_bassline.uk_garage" }
+  - { raw: "ukg",          target: "uk_garage_bassline.uk_garage" }
+  - { raw: "2-step",       target: "uk_garage_bassline.uk_garage" }
+  - { raw: "speed garage", target: "uk_garage_bassline.bassline" }
+  - { raw: "bassline",     target: "uk_garage_bassline.bassline" }
+  - { raw: "breakbeat",    target: "breaks" }
+  - { raw: "breaks",       target: "breaks" }
+  - { raw: "uk funky",     target: "breaks" }
+  - { raw: "broken beat",  target: "breaks" }
+  - { raw: "drum and bass", target: "drum_and_bass" }
+  - { raw: "drum n bass",  target: "drum_and_bass" }
+  - { raw: "dnb",          target: "drum_and_bass" }
+  - { raw: "jungle",       target: "drum_and_bass" }
+  - { raw: "trap",         target: "trap_future_bass" }
+  - { raw: "future bass",  target: "trap_future_bass" }
+  # --- downtempo / electronica / ambient ----------------------------------------------------
+  - { raw: "chillout",     target: "downtempo" }
+  - { raw: "chill out",    target: "downtempo" }
+  - { raw: "lounge / chill out", target: "downtempo" }
+  - { raw: "lounge",       target: "downtempo" }
+  - { raw: "balearic",     target: "downtempo" }
+  - { raw: "trip hop",     target: "downtempo" }
+  - { raw: "leftfield",    target: "electronica" }
+  - { raw: "idm",          target: "electronica" }
+  - { raw: "ambient",      target: "ambient_experimental" }
+  - { raw: "experimental", target: "ambient_experimental" }
+  # --- trance / hard ------------------------------------------------------------------------
+  - { raw: "progressive trance", target: "trance_main.progressive_trance" }
+  - { raw: "uplifting trance", target: "trance_main.uplifting_trance" }
+  - { raw: "tech trance",  target: "trance_main.tech_trance" }
+  - { raw: "vocal trance", target: "trance_main.vocal_trance" }
+  - { raw: "psytrance",    target: "psy_trance" }
+  - { raw: "psy trance",   target: "psy_trance" }
+  - { raw: "goa trance",   target: "psy_trance" }
+  - { raw: "hardstyle",    target: "hard_dance" }
+  - { raw: "hard house",   target: "hard_dance" }
+  - { raw: "hardcore",     target: "hard_dance" }
+  - { raw: "happy hardcore", target: "hard_dance" }
+  # --- commercial ---------------------------------------------------------------------------
+  - { raw: "tropical house", target: "dance_pop.tropical_house" }
+  - { raw: "dance-pop",    target: "dance_pop" }
+  - { raw: "dance pop",    target: "dance_pop" }
+  - { raw: "pop",          target: "dance_pop.pop" }
+  - { raw: "dance / electro pop", target: "dance_pop", note: "old Beatport name" }
+  - { raw: "trap / wave",  target: "trap_future_bass", note: "old Beatport name" }

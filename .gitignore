@@ -1,0 +1,28 @@
+# Local data: never commit the library, tokens or audio
+data/*
+!data/.gitkeep
+.env
+*.sqlite
+*.sqlite-journal
+audio/
+*.mp3
+*.m4a
+*.wav
+*.flac
+*.aiff
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Spotify / tooling caches
+.cache*
+.DS_Store
