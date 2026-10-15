@@ -339,7 +339,8 @@ def assign(
     rows = write_assignments(conn, run_id=run, axis=axis, per_track=per_track)
     assigned = sum(1 for a in per_track.values() if a)
     console.print(
-        f"Run [bold]{run}[/]: {assigned}/{len(per_track)} tracks assigned, {rows} playlist memberships."
+        f"Run [bold]{run}[/]: {assigned}/{len(per_track)} tracks assigned, "
+        f"{rows} playlist memberships."
     )
     per_cat: dict[str, int] = {}
     for assigns in per_track.values():
@@ -379,7 +380,8 @@ def review(
     console.print(table)
     console.print(
         f"{sum(1 for s in uncertain if s.status == 'between')} between, "
-        f"{sum(1 for s in uncertain if s.status == 'unknown')} unknown, out of {len(scores)} tracks. "
+        f"{sum(1 for s in uncertain if s.status == 'unknown')} unknown, "
+        f"out of {len(scores)} tracks. "
         "Export them with `playlistsort labels export review.csv --only review`."
     )
 
