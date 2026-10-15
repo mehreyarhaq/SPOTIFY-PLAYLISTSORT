@@ -17,7 +17,7 @@ src/playlistsort/
   config.py            settings (.env + config/*.yaml)
   db.py                SQLite connection + migrations (db_migrations/NNN_*.sql)
   titles.py            parse "Title - X Remix" into base title / mix name / remixers
-  labels.py            label CSV export/import (M3)
+  labels.py            review CSV export, label import (seed / between / negative), resolve_category
   spotify/auth.py      PKCE login, --paste-redirect for headless use, token file
   spotify/ingest.py    /me/tracks -> tracks/artists/albums
   spotify/publish.py   plan_publish / apply_publish / smoke_test (idempotent, dry-run)
@@ -26,7 +26,8 @@ src/playlistsort/
   enrich/match.py      asymmetric fuzzy matcher (remix-aware); pick_best flags ambiguity
   enrich/factory.py    build_enricher(name, settings, conn); ORDER = sonovault, beatport, discogs, deezer
   enrich/<source>.py   one source per module; each writes Evidence rows, never canonical tags
-  model/scorer.py      evidence -> genre prior distribution (M3)
+  model/scorer.py      evidence -> genre probabilities (canonicalises at score time)
+  model/assign.py      probabilities -> playlist memberships (primary / subgenre / secondary)
   cli.py               typer app
 config/taxonomy.yaml   canonical tree + aliases     config/weights.yaml  source weights
 docs/research/         research reports + reference files

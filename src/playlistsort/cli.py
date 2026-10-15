@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -13,6 +14,9 @@ from playlistsort import __version__, db
 from playlistsort.config import Settings, load_settings
 from playlistsort.enrich import beatport as bp_mod
 from playlistsort.enrich.factory import ORDER, ConfigError, build_enricher
+from playlistsort.labels import export_review_csv, import_labels_csv
+from playlistsort.model.assign import assignments_for, write_assignments
+from playlistsort.model.scorer import load_weights, score_library
 from playlistsort.spotify import auth as spotify_auth
 from playlistsort.spotify import ingest as spotify_ingest
 from playlistsort.spotify import publish as spotify_publish
@@ -24,8 +28,10 @@ app = typer.Typer(
 )
 auth_app = typer.Typer(no_args_is_help=True, help="Spotify login.")
 taxonomy_app = typer.Typer(no_args_is_help=True, help="Inspect the genre taxonomy.")
+labels_app = typer.Typer(no_args_is_help=True, help="Review CSV export and label import.")
 app.add_typer(auth_app, name="auth")
 app.add_typer(taxonomy_app, name="taxonomy")
+app.add_typer(labels_app, name="labels")
 
 console = Console()
 err = Console(stderr=True, style="bold red")
@@ -251,6 +257,167 @@ def taxonomy_pull() -> None:
             console.print(f"  sub-genre: {name}")
     else:
         console.print("[green]config/taxonomy.yaml covers everything Beatport currently lists.[/]")
+
+
+# ------------------------------------------------------------------------------ score / assign
+
+
+def _scored(settings: Settings, conn: sqlite3.Connection):
+    tax = load_taxonomy(settings.taxonomy_path)
+    weights = load_weights(settings.weights_path)
+    return tax, weights, score_library(conn, taxonomy=tax, weights=weights)
+
+
+@app.command()
+def score(
+    track: Annotated[
+        str | None,
+        typer.Option(help="Spotify track id: show the evidence breakdown for one track."),
+    ] = None,
+    top: Annotated[int, typer.Option(help="How many genres to list in the overview.")] = 20,
+) -> None:
+    """Fuse the collected evidence into genre probabilities and summarise the library."""
+    settings = _settings()
+    conn = _db(settings)
+    tax, weights, scores = _scored(settings, conn)
+    if track:
+        s = scores.get(track)
+        if s is None:
+            err.print(f"Unknown track id {track!r} (local files are not scored).")
+            raise typer.Exit(code=1)
+        row = conn.execute("select title from tracks where spotify_id=?", (track,)).fetchone()
+        console.print(f"[bold]{row['title'] if row else track}[/]  status={s.status}")
+        contrib = Table("source", "raw tag", "canonical", "weight")
+        for src, raw, tag, w in sorted(s.contributions, key=lambda c: -c[3]):
+            contrib.add_row(
+                src, raw, tax.path_name(tag) if not tag.startswith("family:") else tag, f"{w:.3f}"
+            )
+        console.print(contrib)
+        ranked = Table("genre", "probability")
+        for tag, prob in s.ranked[:top]:
+            ranked.add_row(tax.path_name(tag), f"{prob:.2f}")
+        console.print(ranked)
+        return
+
+    counts = {"ok": 0, "between": 0, "unknown": 0}
+    leaders: dict[str, int] = {}
+    for s in scores.values():
+        counts[s.status] = counts.get(s.status, 0) + 1
+        if s.top:
+            leaders[s.top[0]] = leaders.get(s.top[0], 0) + 1
+    total = len(scores) or 1
+    overview = Table("status", "tracks", "share")
+    for k in ("ok", "between", "unknown"):
+        overview.add_row(k, str(counts[k]), f"{100 * counts[k] / total:.1f}%")
+    console.print(overview)
+    dist = Table("leading genre", "tracks")
+    for tag, n in sorted(leaders.items(), key=lambda kv: -kv[1])[:top]:
+        dist.add_row(tax.path_name(tag), str(n))
+    console.print(dist)
+
+
+@app.command()
+def assign(
+    axis: Annotated[str, typer.Option(help="genre (feel arrives in Milestone 6).")] = "genre",
+    run_id: Annotated[
+        str | None, typer.Option(help="Name for this assignment run (default: timestamp).")
+    ] = None,
+    threshold: Annotated[
+        float | None, typer.Option(help="Override assignment.threshold from config/weights.yaml.")
+    ] = None,
+) -> None:
+    """Decide which playlist(s) each track belongs in and store that as an assignment run."""
+    from datetime import UTC, datetime
+
+    settings = _settings()
+    conn = _db(settings)
+    tax, weights, scores = _scored(settings, conn)
+    per_track = {
+        tid: assignments_for(s, weights=weights, threshold=threshold) for tid, s in scores.items()
+    }
+    run = run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
+    rows = write_assignments(conn, run_id=run, axis=axis, per_track=per_track)
+    assigned = sum(1 for a in per_track.values() if a)
+    console.print(
+        f"Run [bold]{run}[/]: {assigned}/{len(per_track)} tracks assigned, {rows} playlist memberships."
+    )
+    per_cat: dict[str, int] = {}
+    for assigns in per_track.values():
+        for a in assigns:
+            per_cat[a.category] = per_cat.get(a.category, 0) + 1
+    table = Table("playlist", "tracks")
+    for cat, n in sorted(per_cat.items(), key=lambda kv: -kv[1]):
+        table.add_row(tax.path_name(cat), str(n))
+    console.print(table)
+    console.print("Next: `playlistsort publish --dry-run` then `playlistsort publish`.")
+
+
+@app.command()
+def review(
+    limit: Annotated[int, typer.Option(help="How many uncertain tracks to list.")] = 25,
+) -> None:
+    """Show the tracks the evidence cannot place confidently."""
+    settings = _settings()
+    conn = _db(settings)
+    tax, _weights, scores = _scored(settings, conn)
+    uncertain = [s for s in scores.values() if s.status != "ok"]
+    uncertain.sort(key=lambda s: (0 if s.status == "between" else 1, s.margin))
+    titles = {
+        r["spotify_id"]: r["title"] for r in conn.execute("select spotify_id, title from tracks")
+    }
+    table = Table("status", "track", "top", "runner-up", "margin")
+    for s in uncertain[:limit]:
+        table.add_row(
+            s.status,
+            titles.get(s.track_id, s.track_id)[:60],
+            tax.path_name(s.top[0])
+            if s.top
+            else (f"family: {s.family_hint}" if s.family_hint else ""),
+            tax.path_name(s.second[0]) if s.second else "",
+            f"{s.margin:.2f}" if s.top else "",
+        )
+    console.print(table)
+    console.print(
+        f"{sum(1 for s in uncertain if s.status == 'between')} between, "
+        f"{sum(1 for s in uncertain if s.status == 'unknown')} unknown, out of {len(scores)} tracks. "
+        "Export them with `playlistsort labels export review.csv --only review`."
+    )
+
+
+@labels_app.command("export")
+def labels_export(
+    path: Annotated[Path, typer.Argument(help="CSV file to write.")],
+    only: Annotated[str, typer.Option(help="all or review (between + unknown only).")] = "all",
+) -> None:
+    """Write the review spreadsheet: scores, evidence and empty columns for your labels."""
+    settings = _settings()
+    conn = _db(settings)
+    tax, _weights, scores = _scored(settings, conn)
+    n = export_review_csv(conn, path, scores=scores, taxonomy=tax, only=only)
+    console.print(
+        f"Wrote {n} rows to {path}. Fill in `your_genre` (and optionally `also`, `note`)."
+    )
+
+
+@labels_app.command("import")
+def labels_import(
+    path: Annotated[Path, typer.Argument(help="CSV file with your_genre filled in.")],
+    session_id: Annotated[
+        str | None, typer.Option(help="Label session name (default: timestamp).")
+    ] = None,
+) -> None:
+    """Read your labels back. Later sessions override earlier ones per track."""
+    settings = _settings()
+    conn = _db(settings)
+    tax = load_taxonomy(settings.taxonomy_path)
+    result = import_labels_csv(conn, path, taxonomy=tax, session_id=session_id)
+    console.print(
+        f"Session {result.session_id}: {result.labels} labels stored, {result.skipped} rows blank."
+    )
+    for e in result.errors:
+        err.print(e)
+    if result.errors:
+        raise typer.Exit(code=1)
 
 
 # ------------------------------------------------------------------------------ publish

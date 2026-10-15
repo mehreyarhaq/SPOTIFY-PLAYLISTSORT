@@ -24,7 +24,7 @@ See `docs/research/` for the research this design rests on and `DECISIONS.md` fo
 | 0 Project setup | done |
 | 1 Spotify round-trip (smoke test, ingest) | code + unit tests done; live smoke test pending network access |
 | 2 Metadata enrichment (SonoVault → Beatport → Discogs → Deezer) | code + unit tests done; live run pending network access |
-| 3 First-pass genre playlists + review CSV | planned |
+| 3 First-pass genre playlists + review CSV | code + unit tests done; live run pending network access |
 | 4 Audio features and embeddings | planned |
 | 5 Personalised classifier + review UI | planned |
 | 6 Feel playlists and combined queries | planned |
@@ -104,13 +104,17 @@ playlistsort ingest [--limit N]              Liked Songs -> SQLite
 playlistsort enrich [--source X] [--limit N]  look tracks up in SonoVault, Beatport, Discogs, Deezer
 playlistsort taxonomy pull                   fetch Beatport's current genre tree, report gaps in config
 playlistsort taxonomy unmapped               raw tags with no alias yet
+playlistsort score [--track ID]              fuse evidence into genre probabilities (per-track breakdown)
+playlistsort assign [--threshold X]          decide playlist membership; stores an assignment run
+playlistsort review                          tracks the evidence cannot place confidently
+playlistsort labels export FILE [--only review]  review spreadsheet with empty your_genre/also/note columns
+playlistsort labels import FILE              read your labels back (later sessions override earlier ones)
 playlistsort publish --smoke-test            verify playlist write access end to end
-playlistsort publish [--dry-run]             create/update the managed playlists
+playlistsort publish [--dry-run]             create/update the managed playlists from the latest run
 playlistsort status [--coverage]             library and evidence coverage report
 ```
 
-Later milestones add `score`, `labels export|import`, `assign`, `audio`, `review`, `train`,
-`query` and `sync`.
+Later milestones add `audio`, `train`, `query` and `sync`.
 
 ## Development
 

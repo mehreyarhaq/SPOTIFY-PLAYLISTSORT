@@ -344,3 +344,46 @@ def save_taxonomy_snapshot(
         " values (?,?,?,?)",
         (source, version, _iso(_now()), json.dumps(payload)),
     )
+
+
+# --------------------------------------------------------------------------- labels
+
+
+def add_label(
+    conn: sqlite3.Connection,
+    *,
+    session_id: str,
+    track_id: str,
+    axis: str,
+    category: str,
+    weight: float = 1.0,
+    kind: str = "seed",
+    note: str | None = None,
+) -> None:
+    conn.execute(
+        "insert into labels (session_id, track_id, axis, category, weight, kind, note, created_at)"
+        " values (?,?,?,?,?,?,?,?)",
+        (session_id, track_id, axis, category, weight, kind, note, _iso(_now())),
+    )
+
+
+def latest_labels(
+    conn: sqlite3.Connection, *, axis: str
+) -> dict[str, list[tuple[str, float, str]]]:
+    """Per track, the labels from that track's most recent session on this axis."""
+    rows = conn.execute(
+        """
+        select l.track_id, l.category, l.weight, l.kind
+        from labels l
+        join (select track_id, max(id) as max_id from labels where axis=? group by track_id) m
+          on m.track_id = l.track_id
+        join labels latest on latest.id = m.max_id
+        where l.axis = ? and l.session_id = latest.session_id
+        order by l.track_id, l.id
+        """,
+        (axis, axis),
+    ).fetchall()
+    out: dict[str, list[tuple[str, float, str]]] = {}
+    for r in rows:
+        out.setdefault(r["track_id"], []).append((r["category"], float(r["weight"]), r["kind"]))
+    return out
