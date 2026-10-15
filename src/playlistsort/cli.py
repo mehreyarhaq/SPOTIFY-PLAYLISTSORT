@@ -355,8 +355,8 @@ def assign(
         conn, settings, axis=axis, run_id=run_id, threshold=threshold, use_model=use_model
     )
     console.print(
-        f"Run [bold]{result.run_id}[/] ({result.source}): {result.assigned_tracks}/{len(result.per_track)}"
-        f" tracks assigned."
+        f"Run [bold]{result.run_id}[/] ({result.source}): "
+        f"{result.assigned_tracks}/{len(result.per_track)} tracks assigned."
     )
     table = Table("playlist", "tracks")
     for cat, n in sorted(result.per_category.items(), key=lambda kv: -kv[1]):
