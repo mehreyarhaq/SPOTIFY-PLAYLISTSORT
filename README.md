@@ -23,7 +23,7 @@ See `docs/research/` for the research this design rests on and `DECISIONS.md` fo
 |---|---|
 | 0 Project setup | done |
 | 1 Spotify round-trip (smoke test, ingest) | code + unit tests done; live smoke test pending network access |
-| 2 Metadata enrichment (SonoVault → Beatport → Discogs → Deezer) | planned |
+| 2 Metadata enrichment (SonoVault → Beatport → Discogs → Deezer) | code + unit tests done; live run pending network access |
 | 3 First-pass genre playlists + review CSV | planned |
 | 4 Audio features and embeddings | planned |
 | 5 Personalised classifier + review UI | planned |
@@ -101,14 +101,16 @@ Docs: https://code.claude.com/docs/en/cloud-environments#network-access
 playlistsort auth login [--paste-redirect]   Spotify login (PKCE)
 playlistsort auth status                     show who is logged in
 playlistsort ingest [--limit N]              Liked Songs -> SQLite
+playlistsort enrich [--source X] [--limit N]  look tracks up in SonoVault, Beatport, Discogs, Deezer
+playlistsort taxonomy pull                   fetch Beatport's current genre tree, report gaps in config
 playlistsort taxonomy unmapped               raw tags with no alias yet
 playlistsort publish --smoke-test            verify playlist write access end to end
 playlistsort publish [--dry-run]             create/update the managed playlists
 playlistsort status [--coverage]             library and evidence coverage report
 ```
 
-Later milestones add `enrich`, `score`, `labels export|import`, `assign`, `audio`, `review`,
-`train`, `query` and `sync`.
+Later milestones add `score`, `labels export|import`, `assign`, `audio`, `review`, `train`,
+`query` and `sync`.
 
 ## Development
 

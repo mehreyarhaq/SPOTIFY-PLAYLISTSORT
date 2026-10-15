@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     beatport_password: str = ""
     beatport_bearer_token: str = ""
     sonovault_api_key: str = ""
+    sonovault_base_url: str = "https://api.sonovault.now/v1"
     discogs_token: str = ""
 
     local_music_dirs: str = ""

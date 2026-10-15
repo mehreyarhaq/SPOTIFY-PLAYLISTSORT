@@ -331,3 +331,16 @@ def all_playlists(conn: sqlite3.Connection, *, axis: str | None = None) -> list[
         sql += " where axis=?"
         args = (axis,)
     return [PlaylistRow(**dict(r)) for r in conn.execute(sql + " order by axis, category", args)]
+
+
+# --------------------------------------------------------------------------- taxonomy snapshots
+
+
+def save_taxonomy_snapshot(
+    conn: sqlite3.Connection, *, source: str, version: str, payload: Any
+) -> None:
+    conn.execute(
+        "insert or replace into taxonomy_snapshots (source, version, fetched_at, json)"
+        " values (?,?,?,?)",
+        (source, version, _iso(_now()), json.dumps(payload)),
+    )

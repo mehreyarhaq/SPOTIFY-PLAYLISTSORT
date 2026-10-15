@@ -11,6 +11,8 @@ from rich.table import Table
 
 from playlistsort import __version__, db
 from playlistsort.config import Settings, load_settings
+from playlistsort.enrich import beatport as bp_mod
+from playlistsort.enrich.factory import ORDER, ConfigError, build_enricher
 from playlistsort.spotify import auth as spotify_auth
 from playlistsort.spotify import ingest as spotify_ingest
 from playlistsort.spotify import publish as spotify_publish
@@ -172,6 +174,85 @@ def taxonomy_unmapped() -> None:
         console.print("Every evidence tag maps to the taxonomy." if rows else "No evidence yet.")
 
 
+# ------------------------------------------------------------------------------ enrich
+
+
+def _coverage_table(conn: sqlite3.Connection) -> Table | str:
+    total = conn.execute("select count(*) from tracks where is_local=0").fetchone()[0] or 1
+    rows = conn.execute(
+        "select source, count(distinct track_id) as n from evidence group by source order by n desc"
+    ).fetchall()
+    if not rows:
+        return "No evidence yet. Run: playlistsort enrich"
+    cov = Table("source", "tracks with evidence", "coverage")
+    for r in rows:
+        cov.add_row(r["source"], str(r["n"]), f"{100 * r['n'] / total:.1f}%")
+    genre_cov = conn.execute(
+        "select count(distinct track_id) from evidence where field in ('genre','subgenre','style')"
+    ).fetchone()[0]
+    cov.add_row("[bold]any genre tag[/]", str(genre_cov), f"{100 * genre_cov / total:.1f}%")
+    return cov
+
+
+@app.command()
+def enrich(
+    source: Annotated[
+        str, typer.Option(help="sonovault, beatport, discogs, deezer or all (runs in that order).")
+    ] = "all",
+    limit: Annotated[int | None, typer.Option(help="Only process N tracks per source.")] = None,
+    all_tracks: Annotated[
+        bool,
+        typer.Option(
+            "--all-tracks", help="Re-run for tracks that already have evidence from the source."
+        ),
+    ] = False,
+) -> None:
+    """Look every track up in the metadata sources and store the raw tags as evidence."""
+    settings = _settings()
+    conn = _db(settings)
+    names = list(ORDER) if source == "all" else [source]
+    for name in names:
+        try:
+            enricher = build_enricher(name, settings, conn)
+        except ConfigError as exc:
+            err.print(f"{name}: skipped. {exc}")
+            continue
+        console.print(f"[bold]{name}[/] ...")
+
+        def progress(done: int, total: int) -> None:
+            if done % 50 == 0 or done == total:
+                console.print(f"  {done}/{total}")
+
+        stats = enricher.enrich(conn, only_missing=not all_tracks, limit=limit, progress=progress)
+        console.print("  " + stats.summary())
+    console.print(_coverage_table(conn))
+
+
+@taxonomy_app.command("pull")
+def taxonomy_pull() -> None:
+    """Fetch Beatport's current genre tree, store a snapshot, and report what the config lacks."""
+    settings = _settings()
+    conn = _db(settings)
+    tax = load_taxonomy(settings.taxonomy_path)
+    try:
+        enricher = build_enricher("beatport", settings, conn)
+    except ConfigError as exc:
+        err.print(str(exc))
+        raise typer.Exit(code=2) from exc
+    genres = bp_mod.pull_taxonomy(enricher, conn)  # type: ignore[arg-type]
+    diff = bp_mod.taxonomy_diff(genres, tax)
+    subs = sum(len(g.get("sub_genres") or []) for g in genres)
+    console.print(f"Beatport reports {len(genres)} genres and {subs} sub-genres.")
+    if diff["missing_genres"] or diff["missing_subgenres"]:
+        console.print("[yellow]Not in config/taxonomy.yaml yet:[/]")
+        for name in diff["missing_genres"]:
+            console.print(f"  genre: {name}")
+        for name in diff["missing_subgenres"]:
+            console.print(f"  sub-genre: {name}")
+    else:
+        console.print("[green]config/taxonomy.yaml covers everything Beatport currently lists.[/]")
+
+
 # ------------------------------------------------------------------------------ publish
 
 
@@ -276,15 +357,7 @@ def status(
         table.add_row(label, str(one(f"select {sql}" if sql.startswith("'") else sql)))
     console.print(table)
     if coverage:
-        total = one("select count(*) from tracks") or 1
-        rows = conn.execute(
-            "select source, count(distinct track_id) as n from evidence"
-            " group by source order by n desc"
-        ).fetchall()
-        cov = Table("source", "tracks with evidence", "coverage")
-        for r in rows:
-            cov.add_row(r["source"], str(r["n"]), f"{100 * r['n'] / total:.1f}%")
-        console.print(cov if rows else "No evidence yet (Milestone 2).")
+        console.print(_coverage_table(conn))
 
 
 if __name__ == "__main__":  # pragma: no cover

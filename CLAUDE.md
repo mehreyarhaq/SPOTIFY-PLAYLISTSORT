@@ -22,8 +22,10 @@ src/playlistsort/
   spotify/ingest.py    /me/tracks -> tracks/artists/albums
   spotify/publish.py   plan_publish / apply_publish / smoke_test (idempotent, dry-run)
   taxonomy/normalize.py  raw tag -> canonical (at score time, never at fetch time)
-  enrich/base.py       Evidence dataclass, Enricher protocol, cached HTTP client
-  enrich/<source>.py   one source per module (sonovault, beatport, discogs, deezer, ...)
+  enrich/base.py       Http (cached, rate-spaced, retrying), TrackRow/load_tracks, EnrichStats
+  enrich/match.py      asymmetric fuzzy matcher (remix-aware); pick_best flags ambiguity
+  enrich/factory.py    build_enricher(name, settings, conn); ORDER = sonovault, beatport, discogs, deezer
+  enrich/<source>.py   one source per module; each writes Evidence rows, never canonical tags
   model/scorer.py      evidence -> genre prior distribution (M3)
   cli.py               typer app
 config/taxonomy.yaml   canonical tree + aliases     config/weights.yaml  source weights
