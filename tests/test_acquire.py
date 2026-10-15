@@ -28,7 +28,8 @@ XML = """<?xml version="1.0" encoding="UTF-8"?>
     <TRACK TrackID="1" Name="Cola (Franky Rizardo Remix)" Artist="CamelPhat, Elderbrook"
            Album="Cola (Remixes)" TotalTime="412" AverageBpm="124.00" Tonality="Am"
            Location="file://localhost/Users/dj/Music/Cola%20%28Franky%20Rizardo%20Remix%29.aiff"/>
-    <TRACK TrackID="2" Name="Rej" Artist="&#194;me" Album="Rej" TotalTime="300.5" AverageBpm="122.00" Tonality="Dbm"
+    <TRACK TrackID="2" Name="Rej" Artist="&#194;me" Album="Rej" TotalTime="300.5"
+           AverageBpm="122.00" Tonality="Dbm"
            Location="file://localhost/Users/dj/Music/Rej.mp3"/>
   </COLLECTION>
 </DJ_PLAYLISTS>

@@ -1030,13 +1030,15 @@ analysis = [
 essentia = [
     { name = "essentia-tensorflow", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
 ]
+ml = [
+    { name = "pandas" },
+    { name = "scikit-learn" },
+]
 models = [
     { name = "torch" },
     { name = "transformers" },
 ]
 ui = [
-    { name = "pandas" },
-    { name = "scikit-learn" },
     { name = "streamlit" },
 ]
 
@@ -1055,13 +1057,13 @@ requires-dist = [
     { name = "librosa", marker = "extra == 'analysis'", specifier = ">=0.10" },
     { name = "mutagen", marker = "extra == 'analysis'", specifier = ">=1.47" },
     { name = "numpy", specifier = ">=1.26" },
-    { name = "pandas", marker = "extra == 'ui'", specifier = ">=2.2" },
+    { name = "pandas", marker = "extra == 'ml'", specifier = ">=2.2" },
     { name = "pydantic-settings", specifier = ">=2.3" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "rapidfuzz", specifier = ">=3.6" },
     { name = "rich", specifier = ">=13.7" },
-    { name = "scikit-learn", marker = "extra == 'ui'", specifier = ">=1.4" },
+    { name = "scikit-learn", marker = "extra == 'ml'", specifier = ">=1.4" },
     { name = "scipy", marker = "extra == 'analysis'", specifier = ">=1.11" },
     { name = "soundfile", marker = "extra == 'analysis'", specifier = ">=0.12" },
     { name = "spotipy", specifier = ">=2.26.0" },
@@ -1071,7 +1073,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'models'", specifier = ">=4.40" },
     { name = "typer", specifier = ">=0.12" },
 ]
-provides-extras = ["analysis", "models", "essentia", "ui"]
+provides-extras = ["analysis", "models", "essentia", "ml", "ui"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -35,11 +35,14 @@ models = [
 essentia = [
     "essentia-tensorflow==2.1b6.dev1389; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
-# Milestone 5+: review UI and personalised classifier.
-ui = [
-    "streamlit>=1.35",
+# Milestone 5: personalised classifier.
+ml = [
     "scikit-learn>=1.4",
     "pandas>=2.2",
+]
+# Milestone 5: Streamlit review UI.
+ui = [
+    "streamlit>=1.35",
 ]
 
 [dependency-groups]

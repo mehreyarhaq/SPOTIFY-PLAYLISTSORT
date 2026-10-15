@@ -9,8 +9,11 @@ setup-audio:    ## signal features + local-file matching (Milestone 4)
 setup-models:   ## embeddings and genre priors (PyTorch, ~2 GB)
 	uv sync --group dev --extra analysis --extra models
 
-setup-ui:       ## add review UI deps (Milestone 5)
-	uv sync --group dev --extra ui
+setup-ml:       ## personalised classifier (scikit-learn)
+	uv sync --group dev --extra analysis --extra ml
+
+setup-ui:       ## Streamlit review UI
+	uv sync --group dev --extra analysis --extra ml --extra ui
 
 lint:
 	uv run ruff check .
