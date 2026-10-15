@@ -278,7 +278,8 @@ def status(
     if coverage:
         total = one("select count(*) from tracks") or 1
         rows = conn.execute(
-            "select source, count(distinct track_id) as n from evidence group by source order by n desc"
+            "select source, count(distinct track_id) as n from evidence"
+            " group by source order by n desc"
         ).fetchall()
         cov = Table("source", "tracks with evidence", "coverage")
         for r in rows:

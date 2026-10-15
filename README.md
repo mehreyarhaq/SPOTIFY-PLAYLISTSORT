@@ -21,8 +21,8 @@ See `docs/research/` for the research this design rests on and `DECISIONS.md` fo
 
 | Milestone | State |
 |---|---|
-| 0 Project setup | in progress |
-| 1 Spotify round-trip (smoke test, ingest) | code written, live test pending network access |
+| 0 Project setup | done |
+| 1 Spotify round-trip (smoke test, ingest) | code + unit tests done; live smoke test pending network access |
 | 2 Metadata enrichment (SonoVault → Beatport → Discogs → Deezer) | planned |
 | 3 First-pass genre playlists + review CSV | planned |
 | 4 Audio features and embeddings | planned |
