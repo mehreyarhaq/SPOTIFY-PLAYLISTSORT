@@ -387,3 +387,162 @@ def latest_labels(
     for r in rows:
         out.setdefault(r["track_id"], []).append((r["category"], float(r["weight"]), r["kind"]))
     return out
+
+
+# --------------------------------------------------------------------------- audio (migration 002)
+
+FEATURE_COLUMNS = (
+    "bpm",
+    "bpm_raw",
+    "bpm_confidence",
+    "key_tonic",
+    "key_mode",
+    "camelot",
+    "key_strength",
+    "rms_db",
+    "peak_db",
+    "crest_db",
+    "sub_bass_ratio",
+    "hp_ratio",
+    "tempogram_peak",
+    "pump",
+    "spectral_centroid_hz",
+    "duration_s",
+)
+AUDIO_KIND_PRIORITY = ("local", "deezer_preview", "itunes_preview")
+
+
+@dataclass(frozen=True)
+class AudioSource:
+    track_id: str
+    kind: str
+    local_path: str
+    duration_s: float | None
+    sample_rate: int | None
+
+
+def upsert_audio_source(
+    conn: sqlite3.Connection,
+    *,
+    track_id: str,
+    kind: str,
+    local_path: str,
+    duration_s: float | None = None,
+    sample_rate: int | None = None,
+) -> None:
+    conn.execute(
+        """
+        insert into audio_sources (track_id, kind, local_path, duration_s, sample_rate, fetched_at)
+        values (?,?,?,?,?,?)
+        on conflict(track_id, kind) do update set
+            local_path=excluded.local_path, duration_s=excluded.duration_s,
+            sample_rate=excluded.sample_rate, fetched_at=excluded.fetched_at
+        """,
+        (track_id, kind, local_path, duration_s, sample_rate, _iso(_now())),
+    )
+
+
+def audio_sources(conn: sqlite3.Connection, track_id: str) -> list[AudioSource]:
+    rows = conn.execute(
+        "select track_id, kind, local_path, duration_s, sample_rate from audio_sources"
+        " where track_id=?",
+        (track_id,),
+    ).fetchall()
+    return [AudioSource(**dict(r)) for r in rows]
+
+
+def best_audio_source(conn: sqlite3.Connection, track_id: str) -> AudioSource | None:
+    sources = {s.kind: s for s in audio_sources(conn, track_id)}
+    for kind in AUDIO_KIND_PRIORITY:
+        if kind in sources:
+            return sources[kind]
+    return next(iter(sources.values()), None)
+
+
+def upsert_features(
+    conn: sqlite3.Connection, *, track_id: str, input_kind: str, values: Mapping[str, Any]
+) -> None:
+    known = {k: values[k] for k in FEATURE_COLUMNS if k in values}
+    extra = {k: v for k, v in values.items() if k not in FEATURE_COLUMNS}
+    cols = ["track_id", "input_kind", *known.keys(), "json", "analysed_at"]
+    vals = [
+        track_id,
+        input_kind,
+        *known.values(),
+        json.dumps(extra) if extra else None,
+        _iso(_now()),
+    ]
+    updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c != "track_id")
+    conn.execute(
+        f"insert into features ({', '.join(cols)}) values ({', '.join('?' * len(cols))})"
+        f" on conflict(track_id) do update set {updates}",
+        vals,
+    )
+
+
+def get_features(conn: sqlite3.Connection, track_id: str) -> dict[str, Any] | None:
+    row = conn.execute("select * from features where track_id=?", (track_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def all_features(conn: sqlite3.Connection) -> dict[str, dict[str, Any]]:
+    return {r["track_id"]: dict(r) for r in conn.execute("select * from features")}
+
+
+def put_embedding(
+    conn: sqlite3.Connection,
+    *,
+    track_id: str,
+    model: str,
+    model_version: str,
+    input_kind: str,
+    offset_s: float,
+    vector: Any,
+) -> None:
+    import numpy as np
+
+    arr = np.ascontiguousarray(np.asarray(vector, dtype=np.float32)).ravel()
+    conn.execute(
+        """
+        insert into embeddings
+            (track_id, model, model_version, input_kind, offset_s, dim, dtype, blob, created_at)
+        values (?,?,?,?,?,?,?,?,?)
+        on conflict(track_id, model, model_version, input_kind) do update set
+            offset_s=excluded.offset_s, dim=excluded.dim, dtype=excluded.dtype,
+            blob=excluded.blob, created_at=excluded.created_at
+        """,
+        (
+            track_id,
+            model,
+            model_version,
+            input_kind,
+            offset_s,
+            int(arr.size),
+            "float32",
+            arr.tobytes(),
+            _iso(_now()),
+        ),
+    )
+
+
+def get_embeddings(
+    conn: sqlite3.Connection,
+    *,
+    model: str,
+    input_kind: str | None = None,
+    model_version: str | None = None,
+) -> dict[str, Any]:
+    import numpy as np
+
+    sql = "select track_id, dim, dtype, blob from embeddings where model=?"
+    args: list[Any] = [model]
+    if input_kind:
+        sql += " and input_kind=?"
+        args.append(input_kind)
+    if model_version:
+        sql += " and model_version=?"
+        args.append(model_version)
+    out: dict[str, Any] = {}
+    for r in conn.execute(sql, args):
+        out[r["track_id"]] = np.frombuffer(r["blob"], dtype=r["dtype"]).reshape(r["dim"]).copy()
+    return out

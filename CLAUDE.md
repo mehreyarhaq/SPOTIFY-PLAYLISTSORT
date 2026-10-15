@@ -28,6 +28,9 @@ src/playlistsort/
   enrich/<source>.py   one source per module; each writes Evidence rows, never canonical tags
   model/scorer.py      evidence -> genre probabilities (canonicalises at score time)
   model/assign.py      probabilities -> playlist memberships (primary / subgenre / secondary)
+  audio/features.py    librosa descriptors: BPM (octave-folded), key/Camelot, loudness, sub-bass, H/P, pump
+  audio/acquire.py     rekordbox XML + folder scan + remix-aware matching; Deezer preview download
+  audio/embed.py       Backend protocol (maest, clap, fake); embeddings per input_kind; priors -> evidence
   cli.py               typer app
 config/taxonomy.yaml   canonical tree + aliases     config/weights.yaml  source weights
 docs/research/         research reports + reference files
@@ -36,7 +39,7 @@ data/                  gitignored: library.sqlite, tokens/, audio/
 ```
 
 ## Commands
-- `make setup` / `make check` (ruff + pytest) / `make fmt`
+- `make setup` / `make setup-audio` / `make setup-models` / `make check` (ruff + pytest) / `make fmt`
 - `uv run playlistsort --help`
 - Run a single test: `uv run pytest tests/test_titles.py -q`
 

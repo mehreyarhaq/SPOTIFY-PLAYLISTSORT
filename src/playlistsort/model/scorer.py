@@ -55,6 +55,9 @@ class Weights:
     def remix_factor(self, source: str) -> float:
         return float(self.sources.get(source, {}).get("remix_factor", 1.0))
 
+    def scale_by_score(self, source: str) -> bool:
+        return bool(self.sources.get(source, {}).get("scale_by_score", False))
+
     def cap(self, match_method: str) -> float:
         return float(self.match_method_cap.get(match_method, 0.5))
 
@@ -156,6 +159,8 @@ def score_track(
         if not canon:
             continue
         base = weights.source_weight(row.source) * weights.cap(row.match_method)
+        if weights.scale_by_score(row.source):
+            base *= max(0.0, min(1.0, row.match_score))
         meta = row.meta or {}
         if is_remix and meta.get("release_level"):
             base *= weights.remix_factor(row.source)

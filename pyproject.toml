@@ -19,14 +19,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Milestone 4+: audio analysis. PyTorch path is primary (works on Apple Silicon).
-audio = [
-    "torch>=2.2",
-    "transformers>=4.40",
+# Milestone 4: signal features (BPM, key, loudness, EDM descriptors) and local-file matching.
+analysis = [
     "librosa>=0.10",
     "soundfile>=0.12",
     "mutagen>=1.47",
-    "pyrekordbox>=0.4",
+    "scipy>=1.11",
+]
+# Milestone 4: embeddings and Discogs-style priors. PyTorch path works on Apple Silicon.
+models = [
+    "torch>=2.2",
+    "transformers>=4.40",
 ]
 # Optional, Linux x86_64 only: Essentia feel heads and EDM key profiles.
 essentia = [

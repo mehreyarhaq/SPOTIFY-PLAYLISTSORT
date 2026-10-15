@@ -25,7 +25,7 @@ See `docs/research/` for the research this design rests on and `DECISIONS.md` fo
 | 1 Spotify round-trip (smoke test, ingest) | code + unit tests done; live smoke test pending network access |
 | 2 Metadata enrichment (SonoVault → Beatport → Discogs → Deezer) | code + unit tests done; live run pending network access |
 | 3 First-pass genre playlists + review CSV | code + unit tests done; live run pending network access |
-| 4 Audio features and embeddings | planned |
+| 4 Audio features and embeddings | code + unit tests done (models untested offline) |
 | 5 Personalised classifier + review UI | planned |
 | 6 Feel playlists and combined queries | planned |
 | 7 Sync for newly liked tracks | planned |
@@ -37,7 +37,9 @@ See `docs/research/` for the research this design rests on and `DECISIONS.md` fo
 Requires Python 3.12 or 3.13 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-make setup            # uv sync --group dev
+make setup            # core + dev deps
+make setup-audio      # + librosa/soundfile/mutagen for `audio analyze` and local matching
+make setup-models     # + PyTorch/transformers for `audio embed` (about 2 GB)
 uv run playlistsort --help
 ```
 
@@ -109,12 +111,16 @@ playlistsort assign [--threshold X]          decide playlist membership; stores 
 playlistsort review                          tracks the evidence cannot place confidently
 playlistsort labels export FILE [--only review]  review spreadsheet with empty your_genre/also/note columns
 playlistsort labels import FILE              read your labels back (later sessions override earlier ones)
+playlistsort audio match-local               match rekordbox export / folders to the library
+playlistsort audio fetch-previews            download 30 s Deezer previews for tracks without local audio
+playlistsort audio analyze                   BPM, key/Camelot, loudness, sub-bass, groove descriptors
+playlistsort audio embed --model maest|clap  embeddings (+ Discogs-style genre priors with maest)
 playlistsort publish --smoke-test            verify playlist write access end to end
 playlistsort publish [--dry-run]             create/update the managed playlists from the latest run
 playlistsort status [--coverage]             library and evidence coverage report
 ```
 
-Later milestones add `audio`, `train`, `query` and `sync`.
+Later milestones add `train`, `query` and `sync`.
 
 ## Development
 

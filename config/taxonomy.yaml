@@ -231,15 +231,16 @@ families:
 aliases:
   # --- broad tags: family-level only -------------------------------------------------------
   - { raw: "electronic",  target: "family:electronic" }
-  - { raw: "electronica", target: "family:electronic", sources: [spotify, deezer, itunes, apple, lastfm, musicbrainz] }
+  - { raw: "electronica", target: "family:electronic", sources: [spotify, deezer, itunes, apple, lastfm, musicbrainz, audio_discogs400] }
   - { raw: "dance",       target: "family:electronic" }
   - { raw: "edm",         target: "family:electronic" }
   - { raw: "club",        target: "family:electronic" }
   - { raw: "electro",     target: "family:electronic", sources: [deezer, itunes, apple, spotify] }
-  - { raw: "house",       target: "family:house", sources: [discogs, musicbrainz, lastfm, spotify, deezer, itunes, apple, sonovault] }
+  - { raw: "electro",     target: "electro", sources: [audio_discogs400, discogs, musicbrainz] }
+  - { raw: "house",       target: "family:house", sources: [discogs, musicbrainz, lastfm, spotify, deezer, itunes, apple, sonovault, audio_discogs400] }
   - { raw: "techno",      target: "family:techno" }
   - { raw: "detroit techno", target: "family:techno" }
-  - { raw: "trance",      target: "family:trance", sources: [discogs, musicbrainz, lastfm, spotify, deezer, itunes, apple] }
+  - { raw: "trance",      target: "family:trance", sources: [discogs, musicbrainz, lastfm, spotify, deezer, itunes, apple, audio_discogs400] }
   # --- afro ---------------------------------------------------------------------------------
   - { raw: "afro-house",  target: "afro_house" }
   - { raw: "afrohouse",   target: "afro_house" }

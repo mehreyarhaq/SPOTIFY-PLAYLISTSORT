@@ -29,9 +29,13 @@ app = typer.Typer(
 auth_app = typer.Typer(no_args_is_help=True, help="Spotify login.")
 taxonomy_app = typer.Typer(no_args_is_help=True, help="Inspect the genre taxonomy.")
 labels_app = typer.Typer(no_args_is_help=True, help="Review CSV export and label import.")
+audio_app = typer.Typer(
+    no_args_is_help=True, help="Find audio, extract features, compute embeddings."
+)
 app.add_typer(auth_app, name="auth")
 app.add_typer(taxonomy_app, name="taxonomy")
 app.add_typer(labels_app, name="labels")
+app.add_typer(audio_app, name="audio")
 
 console = Console()
 err = Console(stderr=True, style="bold red")
@@ -420,6 +424,157 @@ def labels_import(
         err.print(e)
     if result.errors:
         raise typer.Exit(code=1)
+
+
+# ------------------------------------------------------------------------------ audio
+
+
+@audio_app.command("match-local")
+def audio_match_local(
+    rekordbox_xml: Annotated[
+        Path | None, typer.Option(help="rekordbox XML export (default: REKORDBOX_XML).")
+    ] = None,
+    folder: Annotated[
+        list[Path] | None, typer.Option(help="Folder(s) to scan (default: LOCAL_MUSIC_DIRS).")
+    ] = None,
+) -> None:
+    """Match your local files (rekordbox export and/or folders) to the library."""
+    from playlistsort.audio import acquire
+    from playlistsort.enrich.base import load_tracks
+
+    settings = _settings()
+    conn = _db(settings)
+    files = []
+    xml = rekordbox_xml or (Path(settings.rekordbox_xml) if settings.rekordbox_xml else None)
+    if xml:
+        files += acquire.parse_rekordbox_xml(xml)
+        console.print(f"rekordbox export: {len(files)} tracks")
+    dirs = folder or settings.music_dirs()
+    if dirs:
+        found = acquire.scan_folders(dirs)
+        files += found
+        console.print(f"folders: {len(found)} audio files")
+    if not files:
+        err.print(
+            "No local files found. Set REKORDBOX_XML and/or LOCAL_MUSIC_DIRS, or pass options."
+        )
+        raise typer.Exit(code=2)
+    tracks = load_tracks(conn)
+    matches = acquire.match_local(tracks, files)
+    n = acquire.register_matches(conn, matches)
+    by_method: dict[str, int] = {}
+    for m in matches:
+        by_method[m.method] = by_method.get(m.method, 0) + 1
+    console.print(f"Matched {n}/{len(tracks)} tracks to local files: {by_method}")
+
+
+@audio_app.command("fetch-previews")
+def audio_fetch_previews(
+    limit: Annotated[int | None, typer.Option(help="Download at most N previews.")] = None,
+) -> None:
+    """Download 30 s Deezer previews for tracks without local audio."""
+    from playlistsort.audio import acquire
+
+    settings = _settings()
+    conn = _db(settings)
+    try:
+        deezer = build_enricher("deezer", settings, conn)
+    except ConfigError as exc:
+        err.print(str(exc))
+        raise typer.Exit(code=2) from exc
+    stats = acquire.fetch_previews(
+        conn,
+        deezer,
+        settings.audio_dir,
+        limit=limit,  # type: ignore[arg-type]
+        progress=lambda d, t: console.print(f"  {d}/{t}") if d % 50 == 0 or d == t else None,
+    )
+    console.print(
+        f"previews: {stats.downloaded} downloaded, {stats.already} already had audio, "
+        f"{stats.skipped_no_preview} without preview, {stats.failed} failed"
+    )
+    if stats.downloaded == 0 and stats.already == 0:
+        console.print(
+            "Hint: run `playlistsort enrich --source deezer` first so we know which tracks"
+            " have previews."
+        )
+
+
+@audio_app.command("analyze")
+def audio_analyze(
+    limit: Annotated[int | None, typer.Option(help="Analyse at most N tracks.")] = None,
+    force: Annotated[
+        bool, typer.Option("--force", help="Re-analyse tracks that already have features.")
+    ] = False,
+) -> None:
+    """Extract BPM, key, loudness and EDM descriptors from the best available audio."""
+    from playlistsort.audio.features import analyse_file
+    from playlistsort.enrich.base import load_tracks
+
+    settings = _settings()
+    conn = _db(settings)
+    have = set(db.all_features(conn)) if not force else set()
+    done = skipped = failed = 0
+    tracks = load_tracks(conn)
+    todo = [t for t in tracks if t.spotify_id not in have]
+    if limit is not None:
+        todo = todo[:limit]
+    for i, track in enumerate(todo, 1):
+        source = db.best_audio_source(conn, track.spotify_id)
+        if source is None:
+            skipped += 1
+            continue
+        try:
+            feats = analyse_file(source.local_path)
+        except Exception as exc:  # noqa: BLE001
+            failed += 1
+            err.print(f"{track.spotify_id}: {type(exc).__name__}: {exc}")
+            continue
+        with conn:
+            db.upsert_features(
+                conn, track_id=track.spotify_id, input_kind=source.kind, values=feats.as_dict()
+            )
+        done += 1
+        if i % 25 == 0 or i == len(todo):
+            console.print(f"  {i}/{len(todo)}")
+    console.print(
+        f"features: {done} analysed, {skipped} without audio, {failed} failed, "
+        f"{len(have)} already done"
+    )
+
+
+@audio_app.command("embed")
+def audio_embed(
+    model: Annotated[
+        str, typer.Option(help="maest (genre priors + embeddings), clap (similarity) or fake.")
+    ] = "maest",
+    limit: Annotated[int | None, typer.Option(help="Embed at most N tracks.")] = None,
+    force: Annotated[bool, typer.Option("--force", help="Recompute existing embeddings.")] = False,
+) -> None:
+    """Compute audio embeddings (and Discogs-style genre priors with maest)."""
+    from playlistsort.audio.embed import embed_library, get_backend
+
+    settings = _settings()
+    conn = _db(settings)
+    try:
+        backend = get_backend(model)
+    except (ValueError, RuntimeError) as exc:
+        err.print(str(exc))
+        raise typer.Exit(code=2) from exc
+    stats = embed_library(
+        conn,
+        backend,
+        only_missing=not force,
+        limit=limit,
+        progress=lambda d, t: console.print(f"  {d}/{t}") if d % 25 == 0 or d == t else None,
+    )
+    console.print(
+        f"{stats.model}: {stats.embedded} embedded, {stats.already} already done, "
+        f"{stats.no_audio} without audio, {stats.failed} failed, "
+        f"{stats.prior_rows} genre-prior rows"
+    )
+    for e in stats.errors[:10]:
+        err.print(e)
 
 
 # ------------------------------------------------------------------------------ publish

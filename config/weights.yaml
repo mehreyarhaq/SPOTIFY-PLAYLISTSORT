@@ -5,7 +5,7 @@ sources:
   beatport:         { weight: 1.0 }
   sonovault:        { weight: 0.8 }
   discogs:          { weight: 0.7, remix_factor: 0.6 }   # release-level styles; weaker for remixes by another artist
-  audio_discogs400: { weight: 0.5 }                       # Milestone 4 audio prior
+  audio_discogs400: { weight: 0.5, scale_by_score: true } # audio prior; weight x model probability
   label_prior:      { weight: 0.4 }                       # Milestone 5
   musicbrainz:      { weight: 0.4 }
   lastfm:           { weight: 0.4 }
