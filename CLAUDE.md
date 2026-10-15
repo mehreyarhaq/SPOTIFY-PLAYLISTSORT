@@ -34,7 +34,10 @@ src/playlistsort/
   audio/features.py    librosa descriptors: BPM (octave-folded), key/Camelot, loudness, sub-bass, H/P, pump
   audio/acquire.py     rekordbox XML + folder scan + remix-aware matching; Deezer preview download
   audio/embed.py       Backend protocol (maest, clap, fake); embeddings per input_kind; priors -> evidence
-  cli.py               typer app
+  model/feel.py        feel axes (percentiles), buckets, Camelot distance, order_for_set
+  model/query.py       select_tracks(genre and/or feel) -> ordered ids
+  pipeline.py          assign_run / publish_run / publish_query / sync (no typer)
+  cli.py               typer app (thin; composes pipeline functions)
 config/taxonomy.yaml   canonical tree + aliases     config/weights.yaml  source weights
 docs/research/         research reports + reference files
 tests/                 unit tests (no network); tests/cassettes for recorded HTTP

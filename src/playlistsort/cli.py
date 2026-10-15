@@ -15,15 +15,22 @@ from playlistsort.config import Settings, load_settings
 from playlistsort.enrich import beatport as bp_mod
 from playlistsort.enrich.factory import ORDER, ConfigError, build_enricher
 from playlistsort.labels import export_review_csv, import_labels_csv
-from playlistsort.model.assign import assign_from_probs, assignments_for, write_assignments
 from playlistsort.model.classifier import (
     NotEnoughLabelsError,
-    load_model,
-    predict_library,
     save_model,
 )
 from playlistsort.model.classifier import train as train_model
+from playlistsort.model.query import QueryError
 from playlistsort.model.scorer import load_weights, score_library
+from playlistsort.pipeline import (
+    NoAssignmentsError,
+    assign_run,
+    publish_query,
+    publish_run,
+)
+from playlistsort.pipeline import (
+    sync as sync_all,
+)
 from playlistsort.spotify import auth as spotify_auth
 from playlistsort.spotify import ingest as spotify_ingest
 from playlistsort.spotify import publish as spotify_publish
@@ -341,44 +348,19 @@ def assign(
     ] = True,
 ) -> None:
     """Decide which playlist(s) each track belongs in and store that as an assignment run."""
-    from datetime import UTC, datetime
-
     settings = _settings()
     conn = _db(settings)
-    tax, weights, scores = _scored(settings, conn)
-    model_path = settings.data_dir / "models" / f"{axis}.joblib"
-    if use_model and model_path.exists():
-        model = load_model(model_path)
-        preds = predict_library(conn, model, taxonomy=tax, weights=weights, scores=scores)
-        per_track = {
-            tid: assign_from_probs(p, weights=weights, taxonomy=tax, threshold=threshold)
-            for tid, p in preds.items()
-        }
-        console.print(
-            f"Using the trained model at {model_path} ({len(model.categories)} categories)."
-        )
-    else:
-        per_track = {
-            tid: assignments_for(s, weights=weights, threshold=threshold)
-            for tid, s in scores.items()
-        }
-        console.print(
-            "Using evidence only (no trained model yet; label tracks, then `playlistsort train`)."
-        )
-    run = run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
-    rows = write_assignments(conn, run_id=run, axis=axis, per_track=per_track)
-    assigned = sum(1 for a in per_track.values() if a)
-    console.print(
-        f"Run [bold]{run}[/]: {assigned}/{len(per_track)} tracks assigned, "
-        f"{rows} playlist memberships."
+    tax = load_taxonomy(settings.taxonomy_path)
+    result = assign_run(
+        conn, settings, axis=axis, run_id=run_id, threshold=threshold, use_model=use_model
     )
-    per_cat: dict[str, int] = {}
-    for assigns in per_track.values():
-        for a in assigns:
-            per_cat[a.category] = per_cat.get(a.category, 0) + 1
+    console.print(
+        f"Run [bold]{result.run_id}[/] ({result.source}): {result.assigned_tracks}/{len(result.per_track)}"
+        f" tracks assigned."
+    )
     table = Table("playlist", "tracks")
-    for cat, n in sorted(per_cat.items(), key=lambda kv: -kv[1]):
-        table.add_row(tax.path_name(cat), str(n))
+    for cat, n in sorted(result.per_category.items(), key=lambda kv: -kv[1]):
+        table.add_row(tax.path_name(cat) if cat in tax.tags() else cat, str(n))
     console.print(table)
     console.print("Next: `playlistsort publish --dry-run` then `playlistsort publish`.")
 
@@ -691,39 +673,64 @@ def publish(
         return
 
     conn = _db(settings)
-    tax = load_taxonomy(settings.taxonomy_path)
-    run = run_id or spotify_publish.latest_run_id(conn, axis)
-    if run is None:
-        console.print(
-            "No assignments yet. Milestone 3 adds `score` and `assign`; nothing to publish."
-        )
-        raise typer.Exit(code=0)
-    desired = spotify_publish.desired_by_category(conn, axis=axis, run_id=run)
-    user_id = spotify_auth.whoami(sp)["id"]
+    try:
+        rows = publish_run(conn, sp, settings, axis=axis, run_id=run_id, dry_run=dry_run)
+    except NoAssignmentsError as exc:
+        console.print(str(exc))
+        raise typer.Exit(code=0) from exc
     table = Table("playlist", "change", "skipped local")
-    for category, uris in sorted(desired.items()):
-        existing = db.get_playlist(conn, axis=axis, category=category)
-        name = spotify_publish.playlist_name(
-            tax.path_name(category) if category in tax.tags() else category
-        )
-        current = (
-            spotify_publish.fetch_current_items(sp, existing.spotify_id)
-            if existing and spotify_publish.playlist_exists(sp, existing.spotify_id)
-            else []
-        )
-        diff = spotify_publish.build_diff(
-            axis=axis,
-            category=category,
-            name=name,
-            spotify_id=existing.spotify_id if existing and current is not None else None,
-            current=current,
-            desired=uris,
-        )
-        spotify_publish.apply_diff(sp, conn, diff, user_id=user_id, dry_run=dry_run)
-        table.add_row(name, diff.summary(), str(len(diff.skipped_local)))
+    for r in rows:
+        table.add_row(r.name, r.summary, str(r.skipped_local))
     console.print(table)
     if dry_run:
         console.print("Dry run: nothing was changed.")
+
+
+# ------------------------------------------------------------------------------ query / sync
+
+
+@app.command()
+def query(
+    genre: Annotated[
+        str | None, typer.Option(help="Genre name, path or alias, e.g. 'Tech House'.")
+    ] = None,
+    feel: Annotated[
+        str | None,
+        typer.Option(help="deep & slow | rolling groove | melodic journey | peak-time driving"),
+    ] = None,
+    name: Annotated[
+        str | None, typer.Option(help="Playlist name (default: '<genre> · <feel>').")
+    ] = None,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be created.")] = False,
+) -> None:
+    """Build one playlist from a genre, a feel, or both, ordered for mixing (BPM, then key)."""
+    settings = _settings()
+    conn = _db(settings)
+    sp = _client(settings)
+    try:
+        diff = publish_query(conn, sp, settings, genre=genre, feel=feel, name=name, dry_run=dry_run)
+    except QueryError as exc:
+        err.print(str(exc))
+        raise typer.Exit(code=2) from exc
+    console.print(f"{diff.name}: {len(diff.desired)} tracks, {diff.summary()}")
+    if dry_run:
+        console.print("Dry run: nothing was changed.")
+
+
+@app.command()
+def sync(
+    no_enrich: Annotated[
+        bool, typer.Option("--no-enrich", help="Skip the metadata sources.")
+    ] = False,
+    no_publish: Annotated[
+        bool, typer.Option("--no-publish", help="Assign but do not touch Spotify playlists.")
+    ] = False,
+) -> None:
+    """Newly liked tracks in, enriched, assigned and published. Safe to run on a schedule."""
+    settings = _settings()
+    conn = _db(settings)
+    sp = _client(settings)
+    sync_all(conn, sp, settings, enrich=not no_enrich, publish=not no_publish, log=console.print)
 
 
 # ------------------------------------------------------------------------------ status

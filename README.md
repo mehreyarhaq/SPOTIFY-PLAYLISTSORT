@@ -27,8 +27,8 @@ See `docs/research/` for the research this design rests on and `DECISIONS.md` fo
 | 3 First-pass genre playlists + review CSV | code + unit tests done; live run pending network access |
 | 4 Audio features and embeddings | code + unit tests done (models untested offline) |
 | 5 Personalised classifier + review UI | code + unit tests done; UI untested offline |
-| 6 Feel playlists and combined queries | planned |
-| 7 Sync for newly liked tracks | planned |
+| 6 Feel playlists and combined queries | code + unit tests done |
+| 7 Sync for newly liked tracks | code + unit tests done |
 
 ## Setup
 
@@ -117,11 +117,15 @@ playlistsort audio fetch-previews            download 30 s Deezer previews for t
 playlistsort audio analyze                   BPM, key/Camelot, loudness, sub-bass, groove descriptors
 playlistsort audio embed --model maest|clap  embeddings (+ Discogs-style genre priors with maest)
 playlistsort publish --smoke-test            verify playlist write access end to end
-playlistsort publish [--dry-run]             create/update the managed playlists from the latest run
+playlistsort publish [--dry-run] [--axis feel]  create/update the managed playlists from the latest run
+playlistsort query --genre X [--feel Y] [--name N]  one playlist from a genre and/or feel, ordered for mixing
+playlistsort sync                            ingest new likes -> enrich -> assign -> publish (schedule it)
 playlistsort status [--coverage]             library and evidence coverage report
 ```
 
-Later milestones add `query` and `sync`.
+Feel playlists: `playlistsort assign --axis feel` buckets every analysed track into deep & slow,
+rolling groove, melodic journey or peak-time driving (library-relative), then `publish --axis feel`.
+Label feel the same way as genre and run `train --axis feel` to personalise the buckets.
 
 ## Development
 
