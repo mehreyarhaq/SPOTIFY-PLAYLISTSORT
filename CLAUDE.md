@@ -27,7 +27,10 @@ src/playlistsort/
   enrich/factory.py    build_enricher(name, settings, conn); ORDER = sonovault, beatport, discogs, deezer
   enrich/<source>.py   one source per module; each writes Evidence rows, never canonical tags
   model/scorer.py      evidence -> genre probabilities (canonicalises at score time)
-  model/assign.py      probabilities -> playlist memberships (primary / subgenre / secondary)
+  model/assign.py      probabilities -> playlist memberships (primary / subgenre / parent / secondary)
+  model/classifier.py  personalised logistic regression on embeddings + signal features + evidence
+                       prior; soft labels, GroupKFold by artist, user labels honoured at prediction
+  review/app.py        Streamlit labelling UI (`playlistsort review --ui`)
   audio/features.py    librosa descriptors: BPM (octave-folded), key/Camelot, loudness, sub-bass, H/P, pump
   audio/acquire.py     rekordbox XML + folder scan + remix-aware matching; Deezer preview download
   audio/embed.py       Backend protocol (maest, clap, fake); embeddings per input_kind; priors -> evidence

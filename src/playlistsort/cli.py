@@ -15,7 +15,14 @@ from playlistsort.config import Settings, load_settings
 from playlistsort.enrich import beatport as bp_mod
 from playlistsort.enrich.factory import ORDER, ConfigError, build_enricher
 from playlistsort.labels import export_review_csv, import_labels_csv
-from playlistsort.model.assign import assignments_for, write_assignments
+from playlistsort.model.assign import assign_from_probs, assignments_for, write_assignments
+from playlistsort.model.classifier import (
+    NotEnoughLabelsError,
+    load_model,
+    predict_library,
+    save_model,
+)
+from playlistsort.model.classifier import train as train_model
 from playlistsort.model.scorer import load_weights, score_library
 from playlistsort.spotify import auth as spotify_auth
 from playlistsort.spotify import ingest as spotify_ingest
@@ -329,6 +336,9 @@ def assign(
     threshold: Annotated[
         float | None, typer.Option(help="Override assignment.threshold from config/weights.yaml.")
     ] = None,
+    use_model: Annotated[
+        bool, typer.Option("--model/--no-model", help="Use the trained classifier when one exists.")
+    ] = True,
 ) -> None:
     """Decide which playlist(s) each track belongs in and store that as an assignment run."""
     from datetime import UTC, datetime
@@ -336,9 +346,25 @@ def assign(
     settings = _settings()
     conn = _db(settings)
     tax, weights, scores = _scored(settings, conn)
-    per_track = {
-        tid: assignments_for(s, weights=weights, threshold=threshold) for tid, s in scores.items()
-    }
+    model_path = settings.data_dir / "models" / f"{axis}.joblib"
+    if use_model and model_path.exists():
+        model = load_model(model_path)
+        preds = predict_library(conn, model, taxonomy=tax, weights=weights, scores=scores)
+        per_track = {
+            tid: assign_from_probs(p, weights=weights, taxonomy=tax, threshold=threshold)
+            for tid, p in preds.items()
+        }
+        console.print(
+            f"Using the trained model at {model_path} ({len(model.categories)} categories)."
+        )
+    else:
+        per_track = {
+            tid: assignments_for(s, weights=weights, threshold=threshold)
+            for tid, s in scores.items()
+        }
+        console.print(
+            "Using evidence only (no trained model yet; label tracks, then `playlistsort train`)."
+        )
     run = run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
     rows = write_assignments(conn, run_id=run, axis=axis, per_track=per_track)
     assigned = sum(1 for a in per_track.values() if a)
@@ -358,10 +384,62 @@ def assign(
 
 
 @app.command()
+def train(
+    axis: Annotated[str, typer.Option(help="genre (feel arrives in Milestone 6).")] = "genre",
+    embeddings: Annotated[
+        str, typer.Option(help="Comma-separated embedding models to use.")
+    ] = "maest,clap",
+    c_reg: Annotated[float, typer.Option("--c", help="Logistic-regression regularisation.")] = 1.0,
+) -> None:
+    """Train the personalised classifier from your labels and report grouped cross-validation."""
+    settings = _settings()
+    conn = _db(settings)
+    tax = load_taxonomy(settings.taxonomy_path)
+    weights = load_weights(settings.weights_path)
+    models = tuple(m.strip() for m in embeddings.split(",") if m.strip())
+    try:
+        model, report = train_model(
+            conn, axis=axis, taxonomy=tax, weights=weights, embedding_models=models, c_reg=c_reg
+        )
+    except NotEnoughLabelsError as exc:
+        err.print(str(exc))
+        raise typer.Exit(code=2) from exc
+    path = settings.data_dir / "models" / f"{axis}.joblib"
+    save_model(model, path)
+    console.print(report.summary())
+
+    def name(tag: str) -> str:
+        return tax.path_name(tag) if tag in tax.tags() else tag
+
+    cats = report.categories
+    table = Table("truth \\ predicted", *[name(c) for c in cats])
+    for a in cats:
+        table.add_row(name(a), *[str(report.confusion[a][b]) for b in cats])
+    console.print(table)
+    console.print(f"Model saved to {path}. Next: `playlistsort assign` then `publish`.")
+
+
+@app.command()
 def review(
     limit: Annotated[int, typer.Option(help="How many uncertain tracks to list.")] = 25,
+    ui: Annotated[
+        bool, typer.Option("--ui", help="Open the Streamlit labelling app instead.")
+    ] = False,
 ) -> None:
-    """Show the tracks the evidence cannot place confidently."""
+    """Show the tracks the evidence cannot place confidently (or open the labelling UI)."""
+    if ui:
+        import subprocess
+        import sys
+
+        try:
+            import streamlit  # noqa: F401
+        except ImportError as exc:
+            err.print("Streamlit is not installed. Run: make setup-ui")
+            raise typer.Exit(code=2) from exc
+        app_path = Path(__file__).parent / "review" / "app.py"
+        raise typer.Exit(
+            code=subprocess.call([sys.executable, "-m", "streamlit", "run", str(app_path)])
+        )
     settings = _settings()
     conn = _db(settings)
     tax, _weights, scores = _scored(settings, conn)

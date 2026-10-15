@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from playlistsort.model.scorer import TrackScore, Weights
+from playlistsort.taxonomy.normalize import Taxonomy
 
 
 @dataclass(frozen=True)
@@ -62,3 +63,27 @@ def write_assignments(
                 )
                 n += 1
     return n
+
+
+def assign_from_probs(
+    probs: Mapping[str, float],
+    *,
+    weights: Weights,
+    taxonomy: Taxonomy,
+    threshold: float | None = None,
+) -> list[Assignment]:
+    """Same rules as `assignments_for`, for a plain category -> probability mapping (model
+    output). A sub-genre category also fills its parent genre playlist."""
+    threshold = weights.threshold if threshold is None else threshold
+    ranked = sorted(probs.items(), key=lambda kv: -kv[1])
+    if not ranked or ranked[0][1] < threshold:
+        return []
+    top, top_p = ranked[0]
+    out = [Assignment(top, round(top_p, 4), "primary")]
+    if "." in top and top.split(".")[0] in taxonomy.genres:
+        out.append(Assignment(top.split(".")[0], round(top_p, 4), "parent"))
+    if len(ranked) > 1:
+        second, second_p = ranked[1]
+        if top_p - second_p < weights.review_margin:
+            out.append(Assignment(second, round(second_p, 4), "secondary"))
+    return out

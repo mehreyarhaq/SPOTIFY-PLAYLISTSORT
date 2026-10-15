@@ -26,7 +26,7 @@ See `docs/research/` for the research this design rests on and `DECISIONS.md` fo
 | 2 Metadata enrichment (SonoVault → Beatport → Discogs → Deezer) | code + unit tests done; live run pending network access |
 | 3 First-pass genre playlists + review CSV | code + unit tests done; live run pending network access |
 | 4 Audio features and embeddings | code + unit tests done (models untested offline) |
-| 5 Personalised classifier + review UI | planned |
+| 5 Personalised classifier + review UI | code + unit tests done; UI untested offline |
 | 6 Feel playlists and combined queries | planned |
 | 7 Sync for newly liked tracks | planned |
 
@@ -107,8 +107,9 @@ playlistsort enrich [--source X] [--limit N]  look tracks up in SonoVault, Beatp
 playlistsort taxonomy pull                   fetch Beatport's current genre tree, report gaps in config
 playlistsort taxonomy unmapped               raw tags with no alias yet
 playlistsort score [--track ID]              fuse evidence into genre probabilities (per-track breakdown)
-playlistsort assign [--threshold X]          decide playlist membership; stores an assignment run
-playlistsort review                          tracks the evidence cannot place confidently
+playlistsort assign [--no-model]             playlist membership (trained model when present); stores a run
+playlistsort review [--ui]                   uncertain tracks; --ui opens the Streamlit labelling app
+playlistsort train                           train the personalised classifier from your labels (grouped CV)
 playlistsort labels export FILE [--only review]  review spreadsheet with empty your_genre/also/note columns
 playlistsort labels import FILE              read your labels back (later sessions override earlier ones)
 playlistsort audio match-local               match rekordbox export / folders to the library
@@ -120,7 +121,7 @@ playlistsort publish [--dry-run]             create/update the managed playlists
 playlistsort status [--coverage]             library and evidence coverage report
 ```
 
-Later milestones add `train`, `query` and `sync`.
+Later milestones add `query` and `sync`.
 
 ## Development
 
