@@ -258,7 +258,8 @@ def fetch_previews(
     flagged = {
         r["track_id"]
         for r in conn.execute(
-            "select track_id from evidence where source='deezer' and field='preview_available' and raw_value='true'"
+            "select track_id from evidence where source='deezer'"
+            " and field='preview_available' and raw_value='true'"
         )
     }
     have = {
