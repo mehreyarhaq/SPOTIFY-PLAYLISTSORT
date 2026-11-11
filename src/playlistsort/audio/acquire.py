@@ -53,6 +53,16 @@ class LocalMatch:
 # --------------------------------------------------------------------------- discovery
 
 
+def _attr_float(el: ET.Element, name: str) -> float | None:
+    value = el.get(name)
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 def parse_rekordbox_xml(path: str | Path) -> list[LocalFile]:
     out: list[LocalFile] = []
     for _event, el in ET.iterparse(str(path), events=("end",)):
@@ -60,22 +70,15 @@ def parse_rekordbox_xml(path: str | Path) -> list[LocalFile]:
             continue
         loc = urlparse(el.get("Location", ""))
         file_path = Path(unquote(loc.path))
-
-        def num(name: str) -> float | None:
-            try:
-                return float(el.get(name)) if el.get(name) not in (None, "") else None
-            except ValueError:
-                return None
-
         out.append(
             LocalFile(
                 path=file_path,
                 title=el.get("Name") or None,
                 artist=el.get("Artist") or None,
                 album=el.get("Album") or None,
-                duration_s=num("TotalTime"),
+                duration_s=_attr_float(el, "TotalTime"),
                 isrc=None,
-                bpm=num("AverageBpm"),
+                bpm=_attr_float(el, "AverageBpm"),
                 key=el.get("Tonality") or None,
                 source="rekordbox",
             )
@@ -121,7 +124,9 @@ def read_file_tags(path: Path) -> LocalFile:
         audio = None
     if audio is not None:
         info = getattr(audio, "info", None)
-        duration = float(info.length) if info is not None and getattr(info, "length", None) else None
+        duration = (
+            float(info.length) if info is not None and getattr(info, "length", None) else None
+        )
         tags = getattr(audio, "tags", None)
         title = _first(tags, "title", "TIT2", "\xa9nam")
         artist = _first(tags, "artist", "TPE1", "\xa9ART")
@@ -142,9 +147,16 @@ def read_file_tags(path: Path) -> LocalFile:
         title = fn_title
         artist = artist or fn_artist
     return LocalFile(
-        path=path, title=title, artist=artist, album=album, duration_s=duration,
-        isrc=isrc.upper().replace("-", "") if isrc else None, bpm=None, key=None, source="folder",
-    )  # fmt: skip
+        path=path,
+        title=title,
+        artist=artist,
+        album=album,
+        duration_s=duration,
+        isrc=isrc.upper().replace("-", "") if isrc else None,
+        bpm=None,
+        key=None,
+        source="folder",
+    )
 
 
 def scan_folders(dirs: Iterable[str | Path]) -> list[LocalFile]:
@@ -178,7 +190,9 @@ def _candidate(f: LocalFile) -> Candidate:
     )
 
 
-def match_local(tracks: Sequence[TrackRow], files: Sequence[LocalFile], *, shortlist: int = 15) -> list[LocalMatch]:
+def match_local(
+    tracks: Sequence[TrackRow], files: Sequence[LocalFile], *, shortlist: int = 15
+) -> list[LocalMatch]:
     by_isrc: dict[str, LocalFile] = {f.isrc: f for f in files if f.isrc}
     candidates = [_candidate(f) for f in files]
     by_id = {c.id: f for c, f in zip(candidates, files, strict=True)}
@@ -190,11 +204,15 @@ def match_local(tracks: Sequence[TrackRow], files: Sequence[LocalFile], *, short
             continue
         if not candidates:
             continue
-        hits = process.extract(track.base_title, titles, scorer=fuzz.token_set_ratio, limit=shortlist)
+        hits = process.extract(
+            track.base_title, titles, scorer=fuzz.token_set_ratio, limit=shortlist
+        )
         pool = [candidates[idx] for _title, _score, idx in hits]
         best = pick_best(query_for(track), pool)
         if best:
-            out.append(LocalMatch(track.spotify_id, by_id[best.candidate.id], best.method, best.score))
+            out.append(
+                LocalMatch(track.spotify_id, by_id[best.candidate.id], best.method, best.score)
+            )
     return out
 
 
@@ -203,7 +221,11 @@ def register_matches(conn: sqlite3.Connection, matches: Iterable[LocalMatch]) ->
     with conn:
         for m in matches:
             db.upsert_audio_source(
-                conn, track_id=m.track_id, kind="local", local_path=str(m.file.path), duration_s=m.file.duration_s
+                conn,
+                track_id=m.track_id,
+                kind="local",
+                local_path=str(m.file.path),
+                duration_s=m.file.duration_s,
             )
             n += 1
     return n
@@ -241,7 +263,9 @@ def fetch_previews(
     }
     have = {
         r["track_id"]
-        for r in conn.execute("select track_id from audio_sources where kind in ('local','deezer_preview')")
+        for r in conn.execute(
+            "select track_id from audio_sources where kind in ('local','deezer_preview')"
+        )
     }
     stats = PreviewStats()
     todo = [t for t in load_tracks(conn) if t.isrc and t.spotify_id in flagged]
@@ -268,7 +292,11 @@ def fetch_previews(
             continue
         with conn:
             db.upsert_audio_source(
-                conn, track_id=track.spotify_id, kind="deezer_preview", local_path=str(target), duration_s=30.0
+                conn,
+                track_id=track.spotify_id,
+                kind="deezer_preview",
+                local_path=str(target),
+                duration_s=30.0,
             )
         stats.downloaded += 1
         if progress:

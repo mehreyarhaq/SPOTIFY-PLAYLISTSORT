@@ -22,13 +22,33 @@ SUB_BASS_HZ = 60.0
 NOTES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
 ENHARMONIC = {"Db": "C#", "Eb": "D#", "Gb": "F#", "Ab": "G#", "Bb": "A#"}
 CAMELOT_MAJOR = {
-    "C": "8B", "G": "9B", "D": "10B", "A": "11B", "E": "12B", "B": "1B",
-    "F#": "2B", "C#": "3B", "G#": "4B", "D#": "5B", "A#": "6B", "F": "7B",
-}  # fmt: skip
+    "C": "8B",
+    "G": "9B",
+    "D": "10B",
+    "A": "11B",
+    "E": "12B",
+    "B": "1B",
+    "F#": "2B",
+    "C#": "3B",
+    "G#": "4B",
+    "D#": "5B",
+    "A#": "6B",
+    "F": "7B",
+}
 CAMELOT_MINOR = {
-    "A": "8A", "E": "9A", "B": "10A", "F#": "11A", "C#": "12A", "G#": "1A",
-    "D#": "2A", "A#": "3A", "F": "4A", "C": "5A", "G": "6A", "D": "7A",
-}  # fmt: skip
+    "A": "8A",
+    "E": "9A",
+    "B": "10A",
+    "F#": "11A",
+    "C#": "12A",
+    "G#": "1A",
+    "D#": "2A",
+    "A#": "3A",
+    "F": "4A",
+    "C": "5A",
+    "G": "6A",
+    "D": "7A",
+}
 # Krumhansl-Kessler key profiles
 _MAJOR = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
 _MINOR = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
@@ -109,11 +129,23 @@ def analyse_array(y: np.ndarray, sr: int = SR) -> Features:
 
     if silent:
         return Features(
-            duration_s=round(duration, 3), bpm=None, bpm_raw=None, bpm_confidence=0.0,
-            key_tonic=None, key_mode=None, camelot=None, key_strength=0.0,
-            rms_db=rms_db, peak_db=peak_db, crest_db=peak_db - rms_db,
-            sub_bass_ratio=0.0, hp_ratio=0.0, tempogram_peak=0.0, pump=0.0, spectral_centroid_hz=0.0,
-        )  # fmt: skip
+            duration_s=round(duration, 3),
+            bpm=None,
+            bpm_raw=None,
+            bpm_confidence=0.0,
+            key_tonic=None,
+            key_mode=None,
+            camelot=None,
+            key_strength=0.0,
+            rms_db=rms_db,
+            peak_db=peak_db,
+            crest_db=peak_db - rms_db,
+            sub_bass_ratio=0.0,
+            hp_ratio=0.0,
+            tempogram_peak=0.0,
+            pump=0.0,
+            spectral_centroid_hz=0.0,
+        )
 
     # --- spectrum: sub-bass share and brightness
     n_fft = 4096
@@ -151,7 +183,12 @@ def analyse_array(y: np.ndarray, sr: int = SR) -> Features:
             per_frame = np.atleast_1d(per_frame).astype(float)
             if per_frame.size:
                 rel = np.min(
-                    np.abs(np.log2(np.maximum(per_frame, 1e-6)[:, None] / np.array([est, est * 2, est / 2])[None, :])),
+                    np.abs(
+                        np.log2(
+                            np.maximum(per_frame, 1e-6)[:, None]
+                            / np.array([est, est * 2, est / 2])[None, :]
+                        )
+                    ),
                     axis=1,
                 )
                 confidence = float(np.mean(rel < np.log2(1.04)))

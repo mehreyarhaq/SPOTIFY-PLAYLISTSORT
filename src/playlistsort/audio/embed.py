@@ -77,7 +77,9 @@ class MaestBackend:
         self.torch = torch
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.extractor = AutoFeatureExtractor.from_pretrained(self.version, trust_remote_code=True)
-        self.model = AutoModelForAudioClassification.from_pretrained(self.version, trust_remote_code=True)
+        self.model = AutoModelForAudioClassification.from_pretrained(
+            self.version, trust_remote_code=True
+        )
         self.model.to(self.device).eval()
         self.labels = self.model.config.id2label
 
@@ -163,7 +165,9 @@ class EmbedStats:
     errors: list[str] = field(default_factory=list)
 
 
-def priors_to_evidence(track_id: str, probs: Mapping[str, float], *, input_kind: str, model: str) -> list[Evidence]:
+def priors_to_evidence(
+    track_id: str, probs: Mapping[str, float], *, input_kind: str, model: str
+) -> list[Evidence]:
     top = sorted(probs.items(), key=lambda kv: -kv[1])[:PRIOR_TOP_K]
     out: list[Evidence] = []
     for label, p in top:
@@ -225,7 +229,9 @@ def embed_library(
                 vector=vec,
             )
             if probs:
-                for ev in priors_to_evidence(track.spotify_id, probs, input_kind=source.kind, model=backend.name):
+                for ev in priors_to_evidence(
+                    track.spotify_id, probs, input_kind=source.kind, model=backend.name
+                ):
                     stats.prior_rows += int(db.add_evidence(conn, ev))
         stats.embedded += 1
         if progress:
