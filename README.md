@@ -15,7 +15,7 @@ decision is a small classifier trained on **your own** labels, so the playlists 
 mixing boundaries rather than any one website's opinion. Tracks that sit between two genres
 are reported as such instead of being forced.
 
-Taking over this project? Start with `HANDOFF.md`. See `docs/research/` for the research this
+Taking over this project (e.g. in a local Claude Code session)? Start with `HANDOFF.md`. See `docs/research/` for the research this
 design rests on, `docs/PLAN.md` for the approved plan and `DECISIONS.md` for the why.
 
 ## Status
@@ -23,9 +23,9 @@ design rests on, `docs/PLAN.md` for the approved plan and `DECISIONS.md` for the
 | Milestone | State |
 |---|---|
 | 0 Project setup | done |
-| 1 Spotify round-trip (smoke test, ingest) | code + unit tests done; live smoke test pending network access |
-| 2 Metadata enrichment (SonoVault → Beatport → Discogs → Deezer) | code + unit tests done; live run pending network access |
-| 3 First-pass genre playlists + review CSV | code + unit tests done; live run pending network access |
+| 1 Spotify round-trip (smoke test, ingest) | code + unit tests done; run live locally (see HANDOFF.md) |
+| 2 Metadata enrichment (SonoVault → Beatport → Discogs → Deezer) | code + unit tests done; run live locally (see HANDOFF.md) |
+| 3 First-pass genre playlists + review CSV | code + unit tests done; run live locally (see HANDOFF.md) |
 | 4 Audio features and embeddings | code + unit tests done (models untested offline) |
 | 5 Personalised classifier + review UI | code + unit tests done; UI untested offline |
 | 6 Feel playlists and combined queries | code + unit tests done |
