@@ -4,7 +4,6 @@ data/*
 .env
 *.sqlite
 *.sqlite-journal
-audio/
 *.mp3
 *.m4a
 *.wav
