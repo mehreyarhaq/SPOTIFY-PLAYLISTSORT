@@ -15,7 +15,8 @@ decision is a small classifier trained on **your own** labels, so the playlists 
 mixing boundaries rather than any one website's opinion. Tracks that sit between two genres
 are reported as such instead of being forced.
 
-See `docs/research/` for the research this design rests on and `DECISIONS.md` for the why.
+Taking over this project? Start with `HANDOFF.md`. See `docs/research/` for the research this
+design rests on, `docs/PLAN.md` for the approved plan and `DECISIONS.md` for the why.
 
 ## Status
 

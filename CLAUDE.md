@@ -2,8 +2,9 @@
 
 ## What this is
 A Python CLI (`playlistsort`) that sorts a DJ's Spotify Liked Songs into private Spotify playlists
-by fine-grained genre (Beatport taxonomy) and, later, by feel. The approved plan lives in the
-Claude plan file and is mirrored by `README.md` (user view) and `DECISIONS.md` (why).
+by fine-grained genre (Beatport taxonomy) and by feel. The approved plan is `docs/PLAN.md`;
+`HANDOFF.md` records state, unverified assumptions and known gaps; `README.md` is the user view;
+`DECISIONS.md` the why.
 
 ## Vocabulary
 - Say **playlist** in all user-facing text, docs and CLI help. Never "crate".
